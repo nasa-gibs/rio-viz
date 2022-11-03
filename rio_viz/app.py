@@ -90,7 +90,7 @@ class viz:
     app: FastAPI = attr.ib(default=attr.Factory(FastAPI))
 
     port: int = attr.ib(default=8080)
-    host: str = attr.ib(default="127.0.0.1")
+    host: str = attr.ib(default="0.0.0.0")
     config: Dict = attr.ib(default=dict)
 
     minzoom: Optional[int] = attr.ib(default=None)
