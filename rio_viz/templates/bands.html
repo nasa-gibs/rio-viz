@@ -614,6 +614,7 @@
         "features": [boundPolygon(bounds)]
       }
 
+      // HLS granule.
       map.addSource('aoi', {
         'type': 'geojson',
         'data': geojson
@@ -731,7 +732,7 @@
         }
       });
 
-      // Granule image.
+      // Arial granule image.
       let bUrl = await urlReq('http://0.0.0.0:8000/cog/preview?url=https%3A%2F%2Foin-hotosm.s3.amazonaws.com%2F629a8793440da9000612011a%2F0%2F629a8793440da9000612011b.tif&bidx=1&bidx=2&bidx=3&unscale=false&resampling=nearest&max_size=1024&return_mask=true')
       // let bUrl = await urlReq('http://localhost:8000/mosaicjson/tiles/WebMercatorQuad/8/73/97@1x?url=http%3A%2F%2F156.68.113.141%3A8123%2Fhls-s30-mosaic.json&assets=B04&assets=B03&assets=B02&rescale=0%2C4000')
       map.addSource('tile', {
