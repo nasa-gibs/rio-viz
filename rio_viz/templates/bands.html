@@ -683,8 +683,8 @@
       if (map.getLayer('tile')) map.removeLayer('tile')
       if (map.getSource('tile')) map.removeSource('tile')
 
-      if (map.getLayer('globe')) map.removeLayer('globe')
-      if (map.getSource('globe')) map.removeSource('globe')
+      if (map.getLayer('marble')) map.removeLayer('marble')
+      if (map.getSource('marble')) map.removeSource('marble')
 
       if (map.getLayer('mvt')) map.removeLayer('mvt')
       if (map.getSource('mvt')) { map.removeSource('mvt') }
@@ -710,35 +710,30 @@
 
       console.log("set3bViz")
 
-      // // Terrain image.
-      // let aUrl = await urlReq('http://0.0.0.0:8000/cog/tiles/WebMercatorQuad/0/0/0?scale=1&url=file%3A%2F%2F%2Fdata%2Fmarble.tif&bidx=1&bidx=2&bidx=3&unscale=false&resampling=nearest&return_mask=true')
-
-      // map.addSource('globe', {
-      //   'type': 'image',
-      //   'url': aUrl,
-      //   'coordinates': [
-      //     // [-180, 90],
-      //     // [180, 90],
-      //     // [180, -90],
-      //     // [-180, -90] 
-      //     [-179, 89],
-      //     [179, 89],
-      //     [179, -89],
-      //     [-179, -89] // 4 points. Cannot use 90 180. Decimal is not good.
-      //   ]
-      // });
-      // map.addLayer({
-      //   id: 'globe',
-      //   'type': 'raster',
-      //   'source': 'globe',
-      //   'paint': {
-      //     'raster-fade-duration': 0
-      //   }
-      // });
+      // Marble image.
+      let aUrl = await urlReq('http://0.0.0.0:8000/cog/tiles/WebMercatorQuad/0/0/0?scale=1&url=file%3A%2F%2F%2Fdata%2Fmarble.tif&bidx=1&bidx=2&bidx=3&unscale=false&resampling=nearest&return_mask=true')
+      map.addSource('marble', {
+        'type': 'image',
+        'url': aUrl,
+        'coordinates': [
+          [-179, 89],
+          [179, 89],
+          [179, -89],
+          [-179, -89] // 4 points. Cannot use 90 180. Decimal is not good.
+        ]
+      });
+      map.addLayer({
+        id: 'marble',
+        'type': 'raster',
+        'source': 'marble',
+        'paint': {
+          'raster-fade-duration': 0
+        }
+      });
 
       // Granule image.
       let bUrl = await urlReq('http://0.0.0.0:8000/cog/preview?url=https%3A%2F%2Foin-hotosm.s3.amazonaws.com%2F629a8793440da9000612011a%2F0%2F629a8793440da9000612011b.tif&bidx=1&bidx=2&bidx=3&unscale=false&resampling=nearest&max_size=1024&return_mask=true')
-
+      // let bUrl = await urlReq('http://localhost:8000/mosaicjson/tiles/WebMercatorQuad/8/73/97@1x?url=http%3A%2F%2F156.68.113.141%3A8123%2Fhls-s30-mosaic.json&assets=B04&assets=B03&assets=B02&rescale=0%2C4000')
       map.addSource('tile', {
         'type': 'image',
         'url': bUrl,
@@ -815,8 +810,9 @@
 
       let url = `${tilejson_endpoint}?${url_params}`
 
-      map.addSource('raster', { type: 'raster', url: url, tileSize: 256 })
-      map.addLayer({ id: 'raster', type: 'raster', source: 'raster' })
+      // No need.
+      // map.addSource('raster', { type: 'raster', url: url, tileSize: 256 })
+      // map.addLayer({ id: 'raster', type: 'raster', source: 'raster' })
 
       // Update histogram when band change and only during histogram.
       if (img.data_stat) addHisto1Band()
