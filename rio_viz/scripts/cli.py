@@ -67,8 +67,8 @@ class NodataParamType(click.ParamType):
 @click.option(
     "--host",
     type=str,
-    default="127.0.0.1",
-    help="Webserver host url (default: 127.0.0.1)",
+    default="0.0.0.0",
+    help="Webserver host url (default: 0.0.0.0)",
 )
 @click.option("--no-check", is_flag=True, help="Ignore COG validation")
 @click.option(
