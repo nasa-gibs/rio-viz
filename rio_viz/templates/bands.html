@@ -249,6 +249,8 @@
 
 <body>
 
+  # Define element.
+
   <div class="logo">
     <img src="{{ url_for('static', path='/img/nasa.svg') }}" />
   </div>
@@ -404,13 +406,15 @@
 
   <script>
 
+    // Define variable.
+
     var img = {
-      data_stat: undefined,
+      data_stat: undefined, // Statistics.
       data_type: undefined,
       band_desc: undefined
     }
 
-    const tilejson_endpoint = '{{ tilejson_endpoint }}'
+    const tilejson_endpoint = '{{ tilejson_endpoint }}' // Router.
     const info_endpoint = '{{ info_endpoint }}'
     const stats_endpoint = '{{ stats_endpoint }}'
 
@@ -425,13 +429,14 @@
       'float64': [-1.7976931348623157e+308, 1.7976931348623157e+308]
     }
 
-    // Define.
     mapboxgl.accessToken = 'pk.eyJ1IjoienlpbiIsImEiOiJjbDRhY3FzenAwOXB2M2JxbzR2bDE1amRwIn0.yZr6zQQ8zylqyQ4gygUkIw';
 
+    // Define map.
     var map = new mapboxgl.Map({
       container: 'map',
       style: {
         version: 8,
+
         sources: {
           'litemap': {
             type: 'raster',
@@ -458,8 +463,7 @@
       zoom: 0 // 0 for all levels.
     })
 
-    // Data layers.
-    console.log("Data layers")
+    // Load data layers.
     const layerList = document.getElementById('layer-selector')
     const layers = [
       { name: 'HLS' },
@@ -474,10 +478,12 @@
       layerList.appendChild(opt)
     })
 
+    // Load map element.
     map.on('load', () => {
 
       console.log("Load bands, minmax, imgbox")
 
+      // Get img data.
       fetch(`${info_endpoint}`)
         .then(res => {
           if (res.ok) return res.json()
@@ -578,7 +584,9 @@
             })
 
           // Get image bounds.
-          let bounds = [...data.bounds]
+          // let bounds = [...data.bounds]
+          // mosaic bounds.
+          let bounds=[-78, 38, -75, 40]
 
           // If bounds crossing dateline
           if (bounds[0] > bounds[2]) {
@@ -604,7 +612,9 @@
           console.warn(err)
         })
     })
+    // end of load.
 
+    // Add img bound.
     const imgBounds = (bounds) => {
 
       console.log("Load bound.")
@@ -633,7 +643,6 @@
       })
       return
     }
-
     const boundPolygon = (bounds) => {
       return {
         'type': 'Feature',
@@ -650,14 +659,11 @@
         'properties': {}
       }
     }
+    // end of imgBounds.
 
-    map.on('zoom', function (e) {
-      console.log("Map zoom")
-      const z = (map.getZoom()).toString().slice(0, 6)
-      document.getElementById('zoom').textContent = z
-    })
-
+    // Define switch pane.
     const switchPane = (event) => {
+
       console.log("Switch pane")
 
       const cur = document.getElementById('toolbar').querySelector(".active")
@@ -674,23 +680,16 @@
     }
 
     const switchViz = () => {
+
       console.log("switchViz")
+
       // Remove old to refresh.
 
-      if (map.getLayer('3raster')) map.removeLayer('3raster')
-      if (map.getSource('3raster')) map.removeSource('3raster')
+      if (map.getLayer('raster')) map.removeLayer('raster')
+      if (map.getSource('raster')) map.removeSource('raster')
 
-      if (map.getLayer('1raster')) map.removeLayer('1raster')
-      if (map.getSource('1raster')) map.removeSource('1raster')
-
-      if (map.getLayer('arial')) map.removeLayer('arial')
-      if (map.getSource('arial')) map.removeSource('arial')
-
-      if (map.getLayer('marble')) map.removeLayer('marble')
-      if (map.getSource('marble')) map.removeSource('marble')
-
-      if (map.getLayer('mvt')) map.removeLayer('mvt')
-      if (map.getSource('mvt')) { map.removeSource('mvt') }
+      if (map.getLayer('mosaic')) map.removeLayer('mosaic')
+      if (map.getSource('mosaic')) map.removeSource('mosaic')
 
       const rasterType = document.getElementById('toolbar').querySelector(".active").id
       switch (rasterType) {
@@ -704,165 +703,124 @@
           throw new Error(`Invalid ${rasterType}`)
       }
     }
-
-    const urlReq = async (aEndpoint) => {
-      return aEndpoint
-    }
+    // enf of switchViz.
 
     const set3bViz = async () => {
 
       console.log("set3bViz")
 
-      // Marble image.
-      let aUrl = await urlReq('http://0.0.0.0:8000/cog/tiles/WebMercatorQuad/0/0/0?scale=1&url=file%3A%2F%2F%2Fdata%2Fmarble.tif&bidx=1&bidx=2&bidx=3&unscale=false&resampling=nearest&return_mask=true')
-      map.addSource('marble', {
+      const urlReq = async (url) => {
+        return url
+      }
+
+      // Mosaic.
+      // assets=B04&assets=B03&assets=B02&color_formula=Gamma+RGB+3.5+Saturation+1.7+Sigmoidal+RGB+15+0.35
+      let cUrl = await urlReq("http://0.0.0.0:8000/mosaicjson/tiles/WebMercatorQuad/8/73/97@1x?url=http%3A%2F%2F156.68.119.239%3A8123%2Fhls-s30-mosaic.json&assets=B04&assets=B03&assets=B02&rescale=0%2C4000")
+      map.addSource('mosaic', {
         'type': 'image',
-        'url': aUrl,
+        'url': cUrl,
         'coordinates': [
-          [-179, 89],
-          [179, 89],
-          [179, -89],
-          [-179, -89] // 4 points. Cannot use 90 180. Decimal is not good.
+          // Must 4 points. Cannot use 90 180.
+          [
+            -77.333633,
+            39.745494
+          ],
+          [
+            -76.038105,
+            39.745494
+          ],
+          [
+            -76.038105,
+            38.73821
+          ],
+          [
+            -77.333633,
+            38.73821
+          ],
         ]
       });
       map.addLayer({
-        id: 'marble',
+        id: 'mosaic',
         'type': 'raster',
-        'source': 'marble',
+        'source': 'mosaic',
         'paint': {
           'raster-fade-duration': 0
         }
       });
 
-      // Arial image.
-      let bUrl = await urlReq('http://0.0.0.0:8000/cog/preview?url=https%3A%2F%2Foin-hotosm.s3.amazonaws.com%2F629a8793440da9000612011a%2F0%2F629a8793440da9000612011b.tif&bidx=1&bidx=2&bidx=3&unscale=false&resampling=nearest&max_size=1024&return_mask=true')
-      map.addSource('arial', {
-        'type': 'image',
-        'url': bUrl,
-        'coordinates': [
-          [
-            -1.365297, // +0.1
-            50.888824
-          ],
-          [
-            -1.265354,
-            50.887298
-          ],
-          [
-            -1.263961,
-            50.787277
-          ],
-          [
-            -1.363904, // +0.1
-            50.788804
-          ]
-        ]
-      });
-      map.addLayer({
-        id: 'arial',
-        'type': 'raster',
-        'source': 'arial',
-        'paint': {
-          'raster-fade-duration': 0
-        }
-      });
-
+      // Default tile.
+      // rgb.
       const r = document.getElementById('r-selector').selectedOptions[0].getAttribute("band")
       const g = document.getElementById('g-selector').selectedOptions[0].getAttribute("band")
       const b = document.getElementById('b-selector').selectedOptions[0].getAttribute("band")
-
+     
       params = {}
 
-      // Get minmax.
+      // min max.
       if (['uint8', 'int8'].indexOf(img.data_type) === -1) {
         params.rescale = `${document.getElementById('data-min').value},${document.getElementById('data-max').value}`
       }
 
+      // url.
       let url_params = Object.keys(params).map(i => `${i}=${params[i]}`).join('&')
       if (url_params !== '') url_params = `${url_params}&`
 
       const bands_params = [r, g, b].map(i => `bands=${i}`).join('&')
 
       let url = `${tilejson_endpoint}?${url_params}${bands_params}`
+      // {"tilejson":"2.1.0","name":"rio-viz","version":"1.0.0","scheme":"xyz",
+      // "tiles":["http://0.0.0.0:8080/tiles/{z}/{x}/{y}?
+      // rescale=-1640%2C3517&bands=b1&bands=b2&bands=b3"],
+      // "minzoom":7,"maxzoom":11,"bounds":
+      // [-162.9603763792722,62.090907721447714,-160.72982317085243,63.11825012814207],
+      // "center":[-161.8450997750623,62.60457892479489,7]}
 
-      // 3band and 1band must same.
-      map.addSource('3raster', { type: 'raster', url: url, tileSize: 256 })
-      map.addLayer({ id: '3raster', type: 'raster', source: '3raster' })
+      map.addSource('raster', { type: 'raster', url: url, tileSize: 256 })
+      map.addLayer({ id: 'raster', type: 'raster', source: 'raster' })
 
       // Update histogram when rgb change and only during histogram.
       if (img.data_stat) addHisto3Bands()
     }
+    // end of set3bViz.
 
     const set1bViz = () => {
-      console.log("set1bViz")
-      const vizType = document.getElementById('viz-selector').querySelector("input[name='toggle-viz']:checked").value
 
+      console.log("set1bViz")
+
+      // const vizType = document.getElementById('viz-selector').querySelector("input[name='toggle-viz']:checked").value
+
+      // Default tile.
       params = {}
 
-      // Get minmax.
+      // min max.
       if (['uint8', 'int8'].indexOf(img.data_type) === -1) {
         params.rescale = `${document.getElementById('data-min').value},${document.getElementById('data-max').value}`
       }
 
+      // colormap.
       const cmap = document.getElementById('colormap-selector')[document.getElementById('colormap-selector').selectedIndex]
       if (cmap.value !== 'b&w') params.colormap_name = cmap.value
 
+      // band.
       params.bands = document.getElementById('band-selector').selectedOptions[0].getAttribute("band")
 
+      // url.
       const url_params = Object.keys(params).map(i => `${i}=${params[i]}`).join('&')
-
       let url = `${tilejson_endpoint}?${url_params}`
 
-      // 1band and 3band must same.
-      map.addSource('1raster', { type: 'raster', url: url, tileSize: 256 })
-      map.addLayer({ id: '1raster', type: 'raster', source: '1raster' })
+      map.addSource('raster', { type: 'raster', url: url, tileSize: 256 })
+      map.addLayer({ id: 'raster', type: 'raster', source: 'raster' })
 
       // Update histogram when band change and only during histogram.
       if (img.data_stat) addHisto1Band()
     }
-
-    // Click histo.
-    document.getElementById('btn-stats').addEventListener('click', () => {
-      document.getElementById('fetch-stats-div').classList.add('none')
-      document.getElementById('histogram').classList.remove('none')
-      document.getElementById('histogram-table').classList.remove('none')
-
-      // Fetch statistics for histogram.
-      // endpoint:
-      // cog/statistics
-      // request:
-      // http://127.0.0.1:8000/cog/statistics?url=https%3A%2F%2Fsentinel-cogs.s3.us-west-2.amazonaws.com%2Fsentinel-s2-l2a-cogs%2F34%2FS%2FGA%2F2020%2F3%2FS2A_34SGA_20200318_0_L2A%2FB04.tif&bidx=1&unscale=false&resampling=nearest&max_size=1024&categorical=false&c=1&c=2&c=3&p=2&p=5&p=95&p=98&histogram_bins=8&histogram_range=0%2C1000
-      // response:
-      // {"1":{"min":37.0,"max":7701.0,"mean":3074.136229050712,"count":775444.0,"sum":2383820494.0,"std":2094.943409079417,"median":3843.0,"majority":84.0,"minority":6780.0,"unique":7373.0,"histogram":[[39748.0,32038.0,36644.0,55746.0,45582.0,20801.0,13694.0,10265.0],[0.0,125.0,250.0,375.0,500.0,625.0,750.0,875.0,1000.0]],"valid_percent":73.95,"masked_pixels":273132.0,"valid_pixels":775444.0,"percentile_98":6125.0,"percentile_95":5787.0,"percentile_2":80.0,"percentile_5":122.0}}
-
-      fetch(`${stats_endpoint}?max_size=256`)
-        .then(res => {
-          if (res.ok) return res.json()
-          throw new Error('Network response was not ok.')
-        })
-        .then(data => {
-          img.data_stat = data
-
-          if (document.getElementById('toolbar').querySelector(".active").id === '1b') {
-            addHisto1Band()
-          } else {
-            addHisto3Bands()
-          }
-          document.getElementById('histogram').classList.remove('loading')
-
-        })
-        .catch(err => {
-          console.warn(err)
-        })
-    })
+    // end of set1bViz.
 
     const addHisto3Bands = () => {
+
       console.log("addHisto3Bands")
+
       // Get band name.
-      // Latest version is band.
-      // r = document.getElementById('r-selector').selectedOptions[0].getAttribute("name")
-      // g = document.getElementById('g-selector').selectedOptions[0].getAttribute("name")
-      // b = document.getElementById('b-selector').selectedOptions[0].getAttribute("name")
       r = document.getElementById('r-selector').selectedOptions[0].getAttribute("band")
       g = document.getElementById('g-selector').selectedOptions[0].getAttribute("band")
       b = document.getElementById('b-selector').selectedOptions[0].getAttribute("band")
@@ -991,9 +949,12 @@
         table.classList.remove('none')
       }
     }
+    // end of addHisto3Bands
 
     const addHisto1Band = () => {
+
       console.log("addHisto1Band")
+
       // Latest version is band.
       // band = document.getElementById('band-selector').selectedOptions[0].getAttribute("name")
       band = document.getElementById('band-selector').selectedOptions[0].getAttribute("band")
@@ -1088,9 +1049,10 @@
     }
     // End of addHisto1Band.
 
-    // Hide button.
+    // Click hide button.
     document.getElementById('hide-btn').addEventListener('click', () => {
-      console.log("hide-btn")
+
+      console.log("Click hide button")
 
       document.getElementById('hide-arrow').classList.toggle('off')
 
@@ -1099,25 +1061,84 @@
 
     // Click band.
     document.getElementById('band-selector').addEventListener('change', () => {
+
       console.log("band-selector")
+
       switchViz()
     })
 
     // Click rgb.
-    document.getElementById('r-selector').addEventListener('change', () => { switchViz() })
-    document.getElementById('g-selector').addEventListener('change', () => { switchViz() })
-    document.getElementById('b-selector').addEventListener('change', () => { switchViz() })
+    document.getElementById('r-selector').addEventListener('change', () => {
+
+      console.log("Click red")
+
+      switchViz() 
+    })
+    document.getElementById('g-selector').addEventListener('change', () => {
+
+      console.log("Click green")
+
+      switchViz() 
+    })
+    document.getElementById('b-selector').addEventListener('change', () => {
+
+      console.log("Click blue")
+
+      switchViz() 
+    })
 
     // Click colormap.
     document.getElementById('colormap-selector').addEventListener('change', () => {
-      console.log("colormap")
+
+      console.log("Click colormap")
+
       switchViz()
     })
 
     // Click rescale.
     document.getElementById('btn-rescale').addEventListener('click', () => {
-      console.log("rescale")
+
+      console.log("Click rescale")
+
       switchViz()
+    })
+
+    // Click histo.
+    document.getElementById('btn-stats').addEventListener('click', () => {
+
+      console.log("Click histo")
+
+      document.getElementById('fetch-stats-div').classList.add('none')
+      document.getElementById('histogram').classList.remove('none')
+      document.getElementById('histogram-table').classList.remove('none')
+
+      // Fetch statistics for histogram.
+      // endpoint:
+      // cog/statistics
+      // request:
+      // http://127.0.0.1:8000/cog/statistics?url=https%3A%2F%2Fsentinel-cogs.s3.us-west-2.amazonaws.com%2Fsentinel-s2-l2a-cogs%2F34%2FS%2FGA%2F2020%2F3%2FS2A_34SGA_20200318_0_L2A%2FB04.tif&bidx=1&unscale=false&resampling=nearest&max_size=1024&categorical=false&c=1&c=2&c=3&p=2&p=5&p=95&p=98&histogram_bins=8&histogram_range=0%2C1000
+      // response:
+      // {"1":{"min":37.0,"max":7701.0,"mean":3074.136229050712,"count":775444.0,"sum":2383820494.0,"std":2094.943409079417,"median":3843.0,"majority":84.0,"minority":6780.0,"unique":7373.0,"histogram":[[39748.0,32038.0,36644.0,55746.0,45582.0,20801.0,13694.0,10265.0],[0.0,125.0,250.0,375.0,500.0,625.0,750.0,875.0,1000.0]],"valid_percent":73.95,"masked_pixels":273132.0,"valid_pixels":775444.0,"percentile_98":6125.0,"percentile_95":5787.0,"percentile_2":80.0,"percentile_5":122.0}}
+
+      fetch(`${stats_endpoint}?max_size=256`)
+        .then(res => {
+          if (res.ok) return res.json()
+          throw new Error('Network response was not ok.')
+        })
+        .then(data => {
+          img.data_stat = data
+
+          if (document.getElementById('toolbar').querySelector(".active").id === '1b') {
+            addHisto1Band()
+          } else {
+            addHisto3Bands()
+          }
+          document.getElementById('histogram').classList.remove('loading')
+
+        })
+        .catch(err => {
+          console.warn(err)
+        })
     })
 
   </script>
