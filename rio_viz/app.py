@@ -50,11 +50,335 @@ except ModuleNotFoundError:
     has_mvt = False
     pixels_encoder = None
 
+import os
+import json
+import rasterio
+import httpx
+from rasterio.features import bounds as featureBounds
+from folium import Map, TileLayer, GeoJson
+from geojson_pydantic import Feature, Polygon
+from rio_tiler.io import COGReader
+from cogeo_mosaic.mosaic import MosaicJSON
+from cogeo_mosaic.backends import MosaicBackend
+import pystac_client
+import requests as r
+import socket
+from pydantic import BaseModel
+
 src_dir = str(pathlib.Path(__file__).parent.joinpath("src"))
 template_dir = str(pathlib.Path(__file__).parent.joinpath("templates"))
 templates = Jinja2Templates(directory=template_dir)
 
 TileFormat = Union[RasterFormat, VectorTileFormat]
+
+def cmr_search(msg):
+
+    print("Start search")
+
+    west_v = msg.west
+    east_v = msg.east
+    south_v = msg.south
+    north_v = msg.north
+    date_v = msg.date
+    collection_v = msg.collection
+    red_v = msg.red
+    green_v = msg.green
+    blue_v = msg.blue
+    scale_v = msg.scale
+
+    # Must pub ip, not 0.0.0.0.
+    tileip = "156.68.112.132"
+
+    # TiTiler server.
+    titiler_endpoint = "http://" + tileip + ":8000"
+
+    # Get JSON data server ip.
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    jsonip = s.getsockname()[0] # 172.21.0.3
+    # print(jsonip)
+    jsonip = "156.68.112.132"
+    s.close()
+
+    data_endpoint = "http://" + jsonip + ":8123"
+
+    # STAC endpoint.
+    stac_endpoint = 'https://cmr.earthdata.nasa.gov/stac'
+    stac_info = r.get(stac_endpoint).json()
+    # for s in stac_info: print(s)
+    print(f"STAC Version: {stac_info['stac_version']}. {stac_info['description']}")
+    print(f"There are {len(stac_info['links'])} STAC catalogs available in CMR.")
+
+    # Create dynamic STAC data search.
+
+    print("Start STAC search...")
+
+    # Select collection.
+    # collections = ['HLSL30.v2.0', 'HLSS30.v2.0']
+    # collections = ['HLSL30.v2.0']
+    collections = collection_v  # ['HLSS30.v2.0']
+    print("Select collection: " + str(collections))
+
+    # Select spatial.
+
+    # DC
+    # west  = -76.5
+    # east  = -76
+    # south = 38.5
+    # north = 39
+
+    # US
+    # west  = -125
+    # east  = -66
+    # south = 25
+    # north = 50
+
+    # World 4300
+    # west  = -85
+    # east  = 85
+    # south = -85
+    # north = 85
+
+    west = west_v  # -85
+    east = east_v  # 85
+    south = south_v  # -85
+    north = north_v  # 85
+
+    # Print coordinates.
+    # roi = json.loads(spatial.to_json())['features'][0]['geometry']
+    # roi = {'type': 'Polygon', 'coordinates': [[[-76.1, 37.1], [-76.1, 37.0], [-76.0, 37.0], [-76.0, 37.1], [-76.1, 37.1]]]}
+    roi = {'type': 'Polygon', 'coordinates': [[[west, north], [west, south], [east, south], [east, north], [west, north]]]}
+    print("Select spatial area: " + str(roi))
+
+    # Select temporal.
+
+    # date_range = sys.argv[1]
+
+    # date_range = "2022-05-01T00:00:00Z/2022-05-05T23:59:59Z"
+
+    # date_range = "2022-01-01/2022-09-01"
+
+    # l30, DC 18SUJ, 4 images.
+    # date_range = "2022-06-17/2022-06-17"
+
+    # s30, DC 18SUJ, 4 images.
+    # date_range = "2022-03-01/2022-03-08"
+    # date_range = "2022-03-01T00:00:00Z/2022-03-08T00:00:00Z"
+
+    # World.
+    date_range = date_v  # "2022-07-01T00:00:00Z/2022-07-02T00:00:00Z"
+
+    print("Select date: " + date_range)
+
+    # Open catalog.
+    print("aaa")
+    catalog = pystac_client.Client.open(f'{stac_endpoint}/LPCLOUD/')
+    # products = [c for c in catalog.get_children()]
+    print("bbb")
+
+    search = catalog.search(
+        collections=collections,
+        intersects=roi,
+        datetime=date_range,
+        # limit=100
+    )
+
+    tile_number = search.matched()
+    print("Tile number: " + str(tile_number))
+
+    # Limit is 100, but get 113. May just close.
+    item_collection = search.get_all_items()
+
+    # binary, not JSON.
+    # print(item_collection)
+
+    # List first 5 tiles..
+    # print(list(item_collection)[0:5])
+
+    # See all granules in 1 tile. STAC JSON format.
+
+    # Same as string.
+    # print(item_collection[0].to_dict())
+
+    # Output string.
+    # with open('../../../server/hls-mosaic-str.json', 'w') as f:
+    # f.write(str(item_collection[0].to_dict()))
+
+    # Filters.
+    cloudcover = 25
+
+    # s30 13.
+    s30_bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B10', 'B11', 'B12', 'Fmask']
+
+    # l30 10.
+    l30_bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B09', 'B10', 'B11', 'Fmask']
+
+    BandShow = 1
+
+    # L30.
+    TileBreaker = False
+
+    # Mosaic files.
+    files = []
+    boxes = []
+
+    # Original mosaic band.
+    mosaic_band = 'B01'
+
+    # Total images in MosaicJSON input file.
+    img_number = 0
+
+    # Tiles.
+    for i in item_collection:
+
+        BandNumber = 0
+
+        # Filter cloud.
+        # if i.properties['eo:cloud_cover'] <= cloudcover:
+        if 1 == 1:
+            if i.collection_id == 'HLSL30.v2.0':
+
+                # Bands.
+                for a in i.assets:
+                    if any(b == a for b in l30_bands) and a == mosaic_band:
+                        # if any(b==a for b in l30_bands):
+
+                        # Print band.
+                        print(i.assets[a].href)
+                        files.append(i.assets[a].href.replace("https://data.lpdaac.earthdatacloud.nasa.gov/", "s3://"))
+                        boxes.append(i.bbox)
+
+                        # Donwload band.
+                        # os.system("wget " + i.assets[a].href)
+
+                        img_number += 1
+
+                        # Comment out for multiple images in one tile.
+                        BandNumber += 1
+
+                        # Use how many bands.
+                        if BandNumber == BandShow:
+                            # TileBreaker = True
+                            # Break inside.
+                            break
+
+                if TileBreaker:
+                    # Break outside.
+                    break
+
+    # S30.
+    TileBreaker = False
+
+    # Tiles.
+    for i in item_collection:
+
+        BandNumber = 0
+
+        # Filter cloud.
+        # if i.properties['eo:cloud_cover'] <= cloudcover:
+        if 1 == 1:
+            if i.collection_id == 'HLSS30.v2.0':
+
+                # Bands.
+                for a in i.assets:
+                    if any(b == a for b in s30_bands) and a == mosaic_band:
+                        # if any(b==a for b in s30_bands):
+
+                        # Print band.
+                        print(i.assets[a].href)
+                        files.append(i.assets[a].href.replace("https://data.lpdaac.earthdatacloud.nasa.gov/", "s3://"))
+                        boxes.append(i.bbox)
+
+                        # Download band.
+                        # os.system("wget " + i.assets[a].href)
+
+                        img_number += 1
+
+                        # Comment out for multiple images in one tile.
+                        BandNumber += 1
+
+                        # Use how many bands.
+                        if BandNumber == BandShow:
+                            # TileBreaker = True
+                            # Break inside.
+                            break
+                if TileBreaker:
+                    # Break outside.
+                    break
+
+    # print(files)
+    # print(boxes)
+
+    def fname_to_feature(file: str, box: float) -> Feature:
+        print(file)
+        print(box)
+        return Feature(
+            geometry=Polygon.from_bounds(
+                box[0], box[1], box[2], box[3]  # w, s, e, n.
+            ),
+            properties={
+                "path": file,
+            }
+        )
+
+    features = [
+        fname_to_feature(files[f], boxes[f]).dict(exclude_none=True) for f in range(img_number)
+    ]
+
+    # Feature geojson.
+    feature_geojson = {'type': 'FeatureCollection', 'features': features}
+    # print(feature_geojson)
+
+    # One big mosaic bound.
+    bounds = featureBounds(feature_geojson)
+
+    # Select area map.
+    m = Map(
+        location=( (float(south) + float(north)) / 2, (float(west) + float(east)) / 2),
+        zoom_start=8
+    )
+
+    # Get zoom level.
+    with COGReader(files[0]) as cog:
+        info = cog.info()
+        print(info.minzoom)
+        print(info.maxzoom)
+
+    # HLS.
+    # minzoom = 8
+    # maxzoom = 12
+
+    # Create mosaic JSON file. MosaicJSON.from_feature look in feature.properties.path to get dataset path.
+
+    jsonfile = "hls-s30-mosaic.json"
+
+    mosaicdata = MosaicJSON.from_features(features, minzoom=info.minzoom, maxzoom=info.maxzoom)
+
+    with MosaicBackend("/server/" + jsonfile, mosaic_def=mosaicdata) as mosaic:
+        mosaic.write(overwrite=True)
+
+    # print(mosaic.info())
+
+    stac_item = data_endpoint + "/" + jsonfile
+
+    # print(stac_item)
+
+    api_json = httpx.get(
+        f"{titiler_endpoint}/mosaicjson/tilejson.json",
+        params=(
+            ("url", stac_item),
+            ("assets", red_v),
+            ("assets", green_v),
+            ("assets", blue_v),
+            ("minzoom", info.minzoom),
+            ("maxzoom", info.maxzoom),
+            ("rescale", scale_v)
+        )
+    ).json()
+
+    return api_json["tiles"][0]
+
+# end of search.
 
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
@@ -687,6 +1011,42 @@ class viz:
                 },
                 media_type="text/html",
             )
+
+        @self.router.get(
+            "/getmsg",
+            tags=["API"],
+        )
+        def getmsg() -> dict:
+            return {
+                "res": "res",
+                "data": "fromsevernewview",
+                "error": "err"
+            }
+
+        class Item(BaseModel):
+            west: str
+            east: str
+            south: str
+            north: str
+            date: str
+            collection: str
+            red: str
+            green: str
+            blue: str
+            scale: str
+
+        @self.router.post(
+            "/search"
+        )
+        async def search(msg: Item) -> dict:
+            print("Get search msg: ")
+            print(msg)
+            url = cmr_search(msg)
+            print("Get url: "+url)
+            # url = "jsonurl"
+            return {
+                "url": url,
+            }
 
     @property
     def endpoint(self) -> str:
