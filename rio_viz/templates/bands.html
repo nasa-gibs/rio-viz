@@ -156,7 +156,7 @@
   <div class="folium-map" id="map"></div>
 
   <div id='menu' class='flex-child w250 w250-ml absolute bg-white off'>
-
+<!-- 
     <ul id='toolbar' class='grid'>
       <li id='query' class="col col--6 active" title="query" onclick="switchPane(this)">
         Search
@@ -164,14 +164,14 @@
       <li id='result' class="col col--6" title="result" onclick="switchPane(this)">
         Result
       </li>
-    </ul>
+    </ul> -->
 
     <div id='menu-content' class='relative'>
 
-      <section id='query-section' class='px12 pt12 pb6 active'>
+      <!-- <section id='query-section' class='px12 pt12 pb6 active'> -->
 
         <div class='align-center mb12'>
-          <button id='btn-query' class='btn center' title='Submit'>Submit</button>
+          <button id='btn-query' class='btn center' title='Search'>Search</button>
         </div>
 
         <section id='data-layers' class='px6 py6 active'>
@@ -259,11 +259,11 @@
           </div>
         </section>
 
-      </section>
+      <!-- </section> -->
 
-      <section id='result-section'>
+      <!-- <section id='result-section'>
         <div id="results-items" class='px12 pt12 pb6'></div>
-      </section>
+      </section> -->
 
     </div>
   </div>
@@ -326,20 +326,20 @@
     })
 
     // Display search result.
-    let searchResult;
-    const query = (body) => {
-      const items_el = document.getElementById('results-items')
-      items_el.innerHTML +=
-        `<div class="list-element" onclick="zoomtofeature('id')">` +
-        '<div class="col">' +
-        '<div class="item-descr">' +
-        `<span class="collection">Collection HLS<br></span>` +
-        `<span class="id">Data number: 4200<br></span>` +
-        `<span class="date">2022-07-01<br></span>` +
-        '</div>' +
-        '</div>' +
-        '</div>'
-    }
+    // let searchResult;
+    // const query = (body) => {
+    //   const items_el = document.getElementById('results-items')
+    //   items_el.innerHTML +=
+    //     `<div class="list-element" onclick="zoomtofeature('id')">` +
+    //     '<div class="col">' +
+    //     '<div class="item-descr">' +
+    //     `<span class="collection">Collection HLS<br></span>` +
+    //     `<span class="id">Data number: 4200<br></span>` +
+    //     `<span class="date">2022-07-01<br></span>` +
+    //     '</div>' +
+    //     '</div>' +
+    //     '</div>'
+    // }
 
     document.getElementById('menu').classList.toggle('off') // Hide menu.
 
@@ -428,7 +428,7 @@
       scope.features = []
       scope.next_token = undefined
       scope.query = {}
-      document.getElementById('results-items').innerHTML = ''
+      // document.getElementById('results-items').innerHTML = ''
     }
 
     red_v = document.getElementById('r-selector').value
@@ -691,11 +691,11 @@
 
       // Switch to search, result.
       scope.query = body
-      query(body)
-      document.getElementById('query').classList.toggle('active')
-      document.getElementById('result').classList.toggle('active')
-      document.getElementById(`query-section`).classList.toggle('active')
-      document.getElementById(`result-section`).classList.toggle('active')
+      // query(body)
+      // document.getElementById('query').classList.toggle('active')
+      // document.getElementById('result').classList.toggle('active')
+      // document.getElementById(`query-section`).classList.toggle('active')
+      // document.getElementById(`result-section`).classList.toggle('active')
     })
 
     const switchPane = (event) => {
