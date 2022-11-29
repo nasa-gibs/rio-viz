@@ -199,8 +199,8 @@
           </div>
           <div class='px12 pt12 pb6'>
             <div class='align-center'>
-              <input id="start-date" type="text" placeholder="2022-07-01T00:00:00Z" />
-              <input id="end-date" type="text" placeholder="2022-07-02T00:00:00Z" />
+              <input id="start-date" type="text" placeholder="2022-10-01T00:00:00Z" />
+              <input id="end-date" type="text" placeholder="2022-11-04T00:00:00Z" />
             </div>
           </div>
         </section>
@@ -253,6 +253,12 @@
           </div>
         </div>
 
+        <section id='display' class='px12 pt12 pb6 active'>
+          <div class='align-center mb12'>
+            <button id='display_btn' class='btn center' title='Display'>Display</button>
+          </div>
+        </section>
+
       </section>
 
       <section id='result-section'>
@@ -264,18 +270,125 @@
 
   <script>
 
-    const tilejson_endpoint = '{{ tilejson_endpoint }}'
+    // Compose define this.
+    sysLocalIp = "0.0.0.0"
+    containerPubIp = "156.68.118.244"
 
-    const cmrn_endpoint = '{{ cmrn_endpoint }}'
+    var red_v, green_v, blue_v, min_v, max_v
+    var layer_img
 
     L_NO_TOUCH = false;
     L_DISABLE_3D = false;
 
+    var img = {
+      data_stat: undefined, // Statistics.
+      data_type: undefined,
+      band_name: undefined
+    }
+
+    // Set menu values.
+    var scope = { collections: undefined, features: [], next_token: undefined, limit: 100, query: {} }
+
+    // Placeholder is not default value.
+    // document.getElementById("start-date").defaultValue="2022-10-02T00:00:00Z";
+
+    const startpicker = window.pickadate.create()
+    const startdate = document.getElementById('start-date')
+    window.pickadate.render(startdate, startpicker)
+    startdate.addEventListener('pickadate:change', () => {
+      startdate.value = startpicker.getValue('YYYY-MM-DD[T]HH:mm:ss[Z]')
+    })
+
+    const endpicker = window.pickadate.create()
+    const enddate = document.getElementById('end-date')
+    window.pickadate.render(enddate, endpicker)
+    enddate.addEventListener('pickadate:change', () => {
+      enddate.value = endpicker.getValue('YYYY-MM-DD[T]HH:mm:ss[Z]')
+    })
+
+    const zoomtofeature = (id) => {
+      const bbox = scope.features.filter(e => { return e.id === id })[0].bbox
+    }
+
+    const layerList = document.getElementById('layer-selector')
+    const layers = [
+      { name: 'HLSS30.v2.0' },
+      { name: 'HLSL30.v2.0' },
+      { name: 'MODIS' },
+      { name: 'VIIRS' },
+      { name: 'GOES' }
+    ]
+    layers.forEach((p) => {
+      let opt = document.createElement('option')
+      opt.setAttribute('name', p.name)
+      opt.text = p.name
+      layerList.appendChild(opt)
+    })
+
+    // Display search result.
+    let searchResult;
+    const query = (body) => {
+      const items_el = document.getElementById('results-items')
+      items_el.innerHTML +=
+        `<div class="list-element" onclick="zoomtofeature('id')">` +
+        '<div class="col">' +
+        '<div class="item-descr">' +
+        `<span class="collection">Collection HLS<br></span>` +
+        `<span class="id">Data number: 4200<br></span>` +
+        `<span class="date">2022-07-01<br></span>` +
+        '</div>' +
+        '</div>' +
+        '</div>'
+    }
+
+    document.getElementById('menu').classList.toggle('off') // Hide menu.
+
+    img.band_name = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B10', 'B11', 'B12']
+
+    const nbands = img.band_name.length
+
+    const rList = document.getElementById('r-selector')
+    for (var i = 0; i < nbands; i++) {
+      let l = document.createElement('option')
+      l.setAttribute('band', img.band_name[i])
+      let name = img.band_name[i]
+      l.setAttribute('name', name)
+      l.text = name
+      if (i === 11) l.selected = "selected"
+      rList.appendChild(l)
+    }
+
+    const gList = document.getElementById('g-selector')
+    for (var i = 0; i < nbands; i++) {
+      let l = document.createElement('option')
+      l.setAttribute('band', img.band_name[i])
+      let name = img.band_name[i]
+      l.setAttribute('name', name)
+      l.text = name
+      if (i === 7) l.selected = "selected"
+      gList.appendChild(l)
+    }
+
+    const bList = document.getElementById('b-selector')
+    for (var i = 0; i < nbands; i++) {
+      let l = document.createElement('option')
+      l.setAttribute('band', img.band_name[i])
+      let name = img.band_name[i]
+      l.setAttribute('name', name)
+      l.text = name
+      if (i === 4) l.selected = "selected"
+      bList.appendChild(l)
+    }
+
+    document.getElementById('minmax-data').classList.remove('none')
+    document.getElementById('data-min').value = 0
+    document.getElementById('data-max').value = 4000
+
     var map = L.map(
       "map",
       {
-        // center: [38.75, -76.25], // DC.
-        center: [40.72208147817604, -73.99655178907726], // NY.
+        center: [38.75, -76.25], // DC.
+        // center: [40.72208147817604, -73.99655178907726], // NY.
         crs: L.CRS.EPSG3857,
         zoom: 8,
         // maxZoom: 12,
@@ -284,31 +397,100 @@
         preferCanvas: false,
       }
     );
-
     L.control.zoom({ position: 'topright' }).addTo(map);
+
+    const add_basemap = () => {
+      var layer_basemap = L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+          "detectRetina": false,
+          "maxNativeZoom": 18,
+          "maxZoom": 18,
+          "minZoom": 0,
+          "noWrap": false,
+          "opacity": 1,
+          "subdomains": "abc",
+          "tms": false
+        }
+      ).addTo(map);
+    }
+
+    add_basemap()
+
+    const remove_layer = () => {
+      map.eachLayer(function (layer) {
+        console.log(JSON.stringify(layer))
+        map.removeLayer(layer);
+      });
+
+      add_basemap()
+
+      scope.features = []
+      scope.next_token = undefined
+      scope.query = {}
+      document.getElementById('results-items').innerHTML = ''
+    }
+
+    red_v = document.getElementById('r-selector').value
+    green_v = document.getElementById('g-selector').value
+    blue_v = document.getElementById('b-selector').value
+    min_v = document.getElementById('data-min').value
+    max_v = document.getElementById('data-max').value
+
+    function add_img(red_v, green_v, blue_v, min_v, max_v) {
+
+      url = "http://" + sysLocalIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + containerPubIp + "%3A8123%2Fhls-s30-mosaic.json&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+
+      console.log(url)
+
+      // url2 = "http://0.0.0.0:8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F156.68.117.34%3A8123%2Fhls-s30-mosaic.json&assets=B11&assets=B08&assets=B05&rescale=0%2C4000"
+
+      // console.log("2")
+      // console.log(url2)
+      layer_img = L.tileLayer(
+        url,
+        {
+          "attribution": "HLS",
+          "detectRetina": false,
+          "maxNativeZoom": 12,
+          "maxZoom": 12,
+          "minZoom": 8,
+          "noWrap": false,
+          "opacity": 1,
+          "subdomains": "abc",
+          "tms": false
+        }
+      ).addTo(map);
+      console.log("Add image.")
+    }
+
+    // if (map.hasLayer(layer_img)) {
+    //   map.removeLayer(layer_img)
+    // }
+    add_img(red_v, green_v, blue_v, min_v, max_v)
 
     // zy Draw polygon.
     // var Draw = new MapboxDraw({
     //   displayControlsDefault: false,
     // });
 
-    let NewPolygon;
+    // let NewPolygon;
 
-    function addLatLngToPolygon(clickEventData) {
-      NewPolygon.addLatLng(clickEventData.latlng);
-    }
+    // function addLatLngToPolygon(clickEventData) {
+    //   NewPolygon.addLatLng(clickEventData.latlng);
+    // }
 
-    function simplifyLatLngs(latlngs) {
-      var x = [];
-      for (var i = 0; i < latlngs.length; i++) {
-        console.log(latlngs[i].lat)
-        x.push([latlngs[i].lat, latlngs[i].lng]);
-      }
-      return x;
-    }
+    // function simplifyLatLngs(latlngs) {
+    //   var x = [];
+    //   for (var i = 0; i < latlngs.length; i++) {
+    //     console.log(latlngs[i].lat)
+    //     x.push([latlngs[i].lat, latlngs[i].lng]);
+    //   }
+    //   return x;
+    // }
 
+    // Draw.
     document.getElementById('bbox').addEventListener('click', () => {
-
       // console.log("Start draw ...")
 
       //Draw.deleteAll();
@@ -375,137 +557,20 @@
     })
     // map.addControl(Draw);
 
-    var layer_basemap = L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        "detectRetina": false,
-        "maxNativeZoom": 18,
-        "maxZoom": 18,
-        "minZoom": 0,
-        "noWrap": false,
-        "opacity": 1,
-        "subdomains": "abc",
-        "tms": false
-      }
-    ).addTo(map);
+    // Display.
+    document.getElementById('display_btn').addEventListener('click', () => {
+      red_v = document.getElementById('r-selector').value
+      green_v = document.getElementById('g-selector').value
+      blue_v = document.getElementById('b-selector').value
+      min_v = document.getElementById('data-min').value
+      max_v = document.getElementById('data-max').value
 
-    var img = {
-      data_stat: undefined, // Statistics.
-      data_type: undefined,
-      band_desc: undefined
-    }
-
-    var scope = { collections: undefined, features: [], next_token: undefined, limit: 100, query: {} }
-
-    // Placeholder is not default value.
-    // document.getElementById("start-date").defaultValue="2022-07-01T00:00:00Z";
-
-    const startpicker = window.pickadate.create()
-    const startdate = document.getElementById('start-date')
-    window.pickadate.render(startdate, startpicker)
-    startdate.addEventListener('pickadate:change', () => {
-      startdate.value = startpicker.getValue('YYYY-MM-DD[T]HH:mm:ss[Z]')
+      map.removeLayer(layer_img);
+      add_img(red_v, green_v, blue_v, min_v, max_v)
     })
 
-    const endpicker = window.pickadate.create()
-    const enddate = document.getElementById('end-date')
-    window.pickadate.render(enddate, endpicker)
-    enddate.addEventListener('pickadate:change', () => {
-      enddate.value = endpicker.getValue('YYYY-MM-DD[T]HH:mm:ss[Z]')
-    })
-
-    const zoomtofeature = (id) => {
-      const bbox = scope.features.filter(e => { return e.id === id })[0].bbox
-    }
-
-    const layerList = document.getElementById('layer-selector')
-    const layers = [
-      { name: 'HLSS30.v2.0' },
-      { name: 'HLSL30.v2.0' },
-      { name: 'MODIS' },
-      { name: 'VIIRS' },
-      { name: 'GOES' }
-    ]
-    layers.forEach((p) => {
-      let opt = document.createElement('option')
-      opt.setAttribute('name', p.name)
-      opt.text = p.name
-      layerList.appendChild(opt)
-    })
-
-    // Display search result.
-    let searchResult;
-    const query = (body) => {
-      const items_el = document.getElementById('results-items')
-      items_el.innerHTML +=
-        `<div class="list-element" onclick="zoomtofeature('id')">` +
-        '<div class="col">' +
-        '<div class="item-descr">' +
-        `<span class="collection">Collection HLS<br></span>` +
-        `<span class="id">Data number: 4200<br></span>` +
-        `<span class="date">2022-07-01<br></span>` +
-        '</div>' +
-        '</div>' +
-        '</div>'
-    }
-
-    document.getElementById('menu').classList.toggle('off') // Hide menu.
-
-    const bandname = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B10', 'B11', 'B12']
-
-    img.band_desc = bandname
-
-    const nbands = img.band_desc.length
-
-    const rList = document.getElementById('r-selector')
-    for (var i = 0; i < nbands; i++) {
-      let l = document.createElement('option')
-      l.setAttribute('band', img.band_desc[i])
-      let name = img.band_desc[i]
-      l.setAttribute('name', name)
-      l.text = name
-      if (i === 3) l.selected = "selected"
-      rList.appendChild(l)
-    }
-
-    const gList = document.getElementById('g-selector')
-    for (var i = 0; i < nbands; i++) {
-      let l = document.createElement('option')
-      l.setAttribute('band', img.band_desc[i])
-      let name = img.band_desc[i]
-      l.setAttribute('name', name)
-      l.text = name
-      if (i === 2) l.selected = "selected"
-      gList.appendChild(l)
-    }
-
-    const bList = document.getElementById('b-selector')
-    for (var i = 0; i < nbands; i++) {
-      let l = document.createElement('option')
-      l.setAttribute('band', img.band_desc[i])
-      let name = img.band_desc[i]
-      l.setAttribute('name', name)
-      l.text = name
-      if (i === 1) l.selected = "selected"
-      bList.appendChild(l)
-    }
-
-    document.getElementById('minmax-data').classList.remove('none')
-
-    document.getElementById('data-min').value = 0
-    document.getElementById('data-max').value = 4000
-
-    const cleanup = () => {
-      scope.features = []
-      scope.next_token = undefined
-      scope.query = {}
-      document.getElementById('results-items').innerHTML = ''
-    }
-
+    // Search.
     document.getElementById('btn-query').addEventListener('click', () => {
-
-      cleanup()
-
       body = { limit: scope.limit }
       filter = { op: 'and', args: [] }
 
@@ -523,32 +588,45 @@
       // map.off('click', addLatLngToPolygon);
 
       // Map extent.
-      let west_v = map.getBounds()._southWest.lng
-      let east_v = map.getBounds()._southWest.lat
-      let south_v = map.getBounds()._northEast.lng
-      let north_v = map.getBounds()._northEast.lat
+      // let west_v  = map.getBounds()._southWest.lng
+      // let east_v  = map.getBounds()._southWest.lat
+      // let south_v = map.getBounds()._northEast.lng
+      // let north_v = map.getBounds()._northEast.lat
 
-      west_v = -85
-      east_v = 85
-      south_v = -85
-      north_v = 85
+      // World lon can be 180, lat max is 89.9
+      // west_v = -85
+      // east_v = 85
+      // south_v = -85
+      // north_v = 85
+
+      // DC
+      // west_v = -78.5 //-77 //-76.5
+      // east_v = -74 //-76.5 //-76
+      // south_v = 36.5 //38.5
+      // north_v = 41 //39
+
+      west_v = -77 //-76.5
+      east_v = -76.5 //-76
+      south_v = 38.5
+      north_v = 39
 
       let startdate_v = document.getElementById('start-date').value
       let enddate_v = document.getElementById('end-date').value
 
       if (startdate_v == "") {
-        startdate_v = "2022-07-01T00:00:00Z"
+        startdate_v = "2022-10-01T00:00:00Z"
       }
       if (enddate_v == "") {
-        enddate_v = "2022-07-02T00:00:00Z"
+        enddate_v = "2022-11-04T00:00:00Z"
       }
 
       const collection_v = document.getElementById('layer-selector').value
-      const red_v = document.getElementById('r-selector').value
-      const green_v = document.getElementById('g-selector').value
-      const blue_v = document.getElementById('b-selector').value
-      const min_v = document.getElementById('data-min').value
-      const max_v = document.getElementById('data-max').value
+
+      red_v = document.getElementById('r-selector').value
+      green_v = document.getElementById('g-selector').value
+      blue_v = document.getElementById('b-selector').value
+      min_v = document.getElementById('data-min').value
+      max_v = document.getElementById('data-max').value
 
       searchstr = {
         "west": west_v,
@@ -562,14 +640,12 @@
         "blue": blue_v,
         "scale": min_v + "," + max_v
       }
-      console.log("Send: " + JSON.stringify(searchstr))
+      console.log("Send string: " + JSON.stringify(searchstr))
 
       // Search API to pass searchResult.
 
-      cip = "0.0.0.0"
-
-      // Get.
-      // fetch("http://"+cip+":8080/getmsg")
+      // Get data.
+      // fetch("http://"+sysLocalIp+":8080/getmsg")
       //   .then(response => {
       //     if (response.ok)
       //       return response.json()
@@ -582,8 +658,8 @@
       //     console.warn(error)
       //   })
 
-      // Post.
-      fetch("http://" + cip + ":8080/search",
+      // Search.
+      fetch("http://" + sysLocalIp + ":8080/search",
         {
           method: "POST",
           headers: {
@@ -599,33 +675,26 @@
           throw new Error('Server no response.')
         })
         .then(data => {
-          console.log("Get url: " + data.url)
+          if (data.url == "nodata") {
+            console.log("No data: ")
+          }
+          else {
+            console.log("Get url: " + data.url)
 
-          var layer_img = L.tileLayer(
-            data.url,
-            {
-              "attribution": "HLS",
-              "detectRetina": false,
-              "maxNativeZoom": 12,
-              "maxZoom": 12,
-              "minZoom": 8,
-              "noWrap": false,
-              "opacity": 1,
-              "subdomains": "abc",
-              "tms": false
-            }
-          ).addTo(map);
+            map.removeLayer(layer_img);
+            add_img(red_v, green_v, blue_v, min_v, max_v)
+          }
         })
         .catch(error => {
           console.warn(error)
         })
 
+      // Switch to search, result.
       scope.query = body
       query(body)
       document.getElementById('query').classList.toggle('active')
       document.getElementById('result').classList.toggle('active')
       document.getElementById(`query-section`).classList.toggle('active')
-      // Switch to search result.
       document.getElementById(`result-section`).classList.toggle('active')
     })
 
@@ -712,6 +781,23 @@
     //             }],
     //     "type": "FeatureCollection"
     // });
+
+    // url = "http://" + sysLocalIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + containerPubIp + "%3A8123%2Fhls-s30-mosaic.json&assets=B04&assets=B03&assets=B02&rescale=0%2C4000"
+    // var layer_img = L.tileLayer(
+    //   url,
+    //   {
+    //     "attribution": "HLS",
+    //     "detectRetina": false,
+    //     "maxNativeZoom": 12,
+    //     "maxZoom": 12,
+    //     "minZoom": 8,
+    //     "noWrap": false,
+    //     "opacity": 1,
+    //     "subdomains": "abc",
+    //     "tms": false
+    //   }
+    // ).addTo(map);
+    // console.log("Display image.")
 
     function area_styler(feature) {
       switch (feature.properties.path) {

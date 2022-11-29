@@ -71,6 +71,9 @@ templates = Jinja2Templates(directory=template_dir)
 
 TileFormat = Union[RasterFormat, VectorTileFormat]
 
+# Must pub ip, not 0.0.0.0.
+containerPubIp = "156.68.118.244"
+
 def cmr_search(msg):
 
     print("Start search")
@@ -86,21 +89,15 @@ def cmr_search(msg):
     blue_v = msg.blue
     scale_v = msg.scale
 
-    # Must pub ip, not 0.0.0.0.
-    tileip = "156.68.112.132"
+    # # Get ip. Container is 172.21.0.3
+    # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # s.connect(("8.8.8.8", 80))
+    # ip = s.getsockname()[0]
+    # s.close()
 
     # TiTiler server.
-    titiler_endpoint = "http://" + tileip + ":8000"
-
-    # Get JSON data server ip.
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    jsonip = s.getsockname()[0] # 172.21.0.3
-    # print(jsonip)
-    jsonip = "156.68.112.132"
-    s.close()
-
-    data_endpoint = "http://" + jsonip + ":8123"
+    titiler_endpoint = "http://" + containerPubIp + ":8000"
+    data_endpoint = "http://" + containerPubIp + ":8123"
 
     # STAC endpoint.
     stac_endpoint = 'https://cmr.earthdata.nasa.gov/stac'
@@ -139,10 +136,10 @@ def cmr_search(msg):
     # south = -85
     # north = 85
 
-    west = west_v  # -85
-    east = east_v  # 85
-    south = south_v  # -85
-    north = north_v  # 85
+    west = west_v
+    east = east_v
+    south = south_v
+    north = north_v
 
     # Print coordinates.
     # roi = json.loads(spatial.to_json())['features'][0]['geometry']
@@ -171,10 +168,8 @@ def cmr_search(msg):
     print("Select date: " + date_range)
 
     # Open catalog.
-    print("aaa")
     catalog = pystac_client.Client.open(f'{stac_endpoint}/LPCLOUD/')
     # products = [c for c in catalog.get_children()]
-    print("bbb")
 
     search = catalog.search(
         collections=collections,
@@ -185,6 +180,8 @@ def cmr_search(msg):
 
     tile_number = search.matched()
     print("Tile number: " + str(tile_number))
+    if tile_number == 0:
+        return "nodata"
 
     # Limit is 100, but get 113. May just close.
     item_collection = search.get_all_items()
@@ -334,7 +331,7 @@ def cmr_search(msg):
 
     # Select area map.
     m = Map(
-        location=( (float(south) + float(north)) / 2, (float(west) + float(east)) / 2),
+        location=((float(south) + float(north)) / 2, (float(west) + float(east)) / 2),
         zoom_start=8
     )
 
@@ -1042,8 +1039,13 @@ class viz:
             print("Get search msg: ")
             print(msg)
             url = cmr_search(msg)
-            print("Get url: "+url)
-            # url = "jsonurl"
+            if url != "nodata":
+                index = 7
+                sysLocalIp = "0.0.0.0"
+                lth = len(containerPubIp)
+                url = url[:index] + sysLocalIp + url[index + lth:]
+                
+            print("Respond url: " + url)
             return {
                 "url": url,
             }
