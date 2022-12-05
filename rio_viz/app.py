@@ -65,14 +65,22 @@ import requests as r
 import socket
 from pydantic import BaseModel
 
+from fastapi.responses import FileResponse
+
 src_dir = str(pathlib.Path(__file__).parent.joinpath("src"))
 template_dir = str(pathlib.Path(__file__).parent.joinpath("templates"))
 templates = Jinja2Templates(directory=template_dir)
 
 TileFormat = Union[RasterFormat, VectorTileFormat]
 
-# Must pub ip, not 0.0.0.0.
-containerPubIp = "156.68.118.244"
+# Get container ip 172.21.0.3
+# s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# s.connect(("8.8.8.8", 80))
+# ContainerIp = s.getsockname()[0]
+
+# Must pub ip inside container, not 0.0.0.0.
+TitilerIp = "titiler"
+VizexIp = "vizex"
 
 def cmr_search(msg):
 
@@ -89,15 +97,9 @@ def cmr_search(msg):
     blue_v = msg.blue
     scale_v = msg.scale
 
-    # # Get ip. Container is 172.21.0.3
-    # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # s.connect(("8.8.8.8", 80))
-    # ip = s.getsockname()[0]
-    # s.close()
-
     # TiTiler server.
-    titiler_endpoint = "http://" + containerPubIp + ":8000"
-    data_endpoint = "http://" + containerPubIp + ":8123"
+    titiler_endpoint = "http://" + TitilerIp + ":8000"
+    data_endpoint = "http://" + VizexIp + ":8080"
 
     # STAC endpoint.
     stac_endpoint = 'https://cmr.earthdata.nasa.gov/stac'
@@ -347,33 +349,37 @@ def cmr_search(msg):
 
     # Create mosaic JSON file. MosaicJSON.from_feature look in feature.properties.path to get dataset path.
 
-    jsonfile = "hls-s30-mosaic.json"
+    jsonfile = "datanew.json"
 
     mosaicdata = MosaicJSON.from_features(features, minzoom=info.minzoom, maxzoom=info.maxzoom)
 
-    with MosaicBackend("/server/" + jsonfile, mosaic_def=mosaicdata) as mosaic:
+    # with MosaicBackend("/server/" + jsonfile, mosaic_def=mosaicdata) as mosaic:
+    # Write to home.
+    with MosaicBackend(jsonfile, mosaic_def=mosaicdata) as mosaic:
         mosaic.write(overwrite=True)
 
     # print(mosaic.info())
 
-    stac_item = data_endpoint + "/" + jsonfile
+    # stac_item = data_endpoint + "/" + jsonfile
+    # stac_item = data_endpoint + "/jsondata"
 
     # print(stac_item)
 
-    api_json = httpx.get(
-        f"{titiler_endpoint}/mosaicjson/tilejson.json",
-        params=(
-            ("url", stac_item),
-            ("assets", red_v),
-            ("assets", green_v),
-            ("assets", blue_v),
-            ("minzoom", info.minzoom),
-            ("maxzoom", info.maxzoom),
-            ("rescale", scale_v)
-        )
-    ).json()
+    # api_json = httpx.get(
+    #     f"{titiler_endpoint}/mosaicjson/tilejson.json",
+    #     params=(
+    #         ("url", stac_item),
+    #         ("assets", red_v),
+    #         ("assets", green_v),
+    #         ("assets", blue_v),
+    #         ("minzoom", info.minzoom),
+    #         ("maxzoom", info.maxzoom),
+    #         ("rescale", scale_v)
+    #     )
+    # ).json()
+    # return api_json["tiles"][0]
 
-    return api_json["tiles"][0]
+    return jsonfile
 
 # end of search.
 
@@ -1038,17 +1044,33 @@ class viz:
         async def search(msg: Item) -> dict:
             print("Get search msg: ")
             print(msg)
-            url = cmr_search(msg)
-            if url != "nodata":
-                index = 7
-                sysLocalIp = "0.0.0.0"
-                lth = len(containerPubIp)
-                url = url[:index] + sysLocalIp + url[index + lth:]
-                
-            print("Respond url: " + url)
+            jsonfile = cmr_search(msg)
+
+            # if url != "nodata" and url != "searchdone":
+            #     preipsize = len("http://")
+            #     ipsize = len(TitilerIp)
+            #     url = url[:preipsize] + "0.0.0.0" + url[preipsize + ipsize:]
+
+            print("Respond json file: " + jsonfile)
             return {
-                "url": url,
+                "jsonfile": jsonfile,
             }
+
+        @self.router.get(
+            "/jsondata",
+            tags=["API"],
+        )
+        def getmsg():
+            # From home.
+            return FileResponse("data.json")
+        
+        @self.router.get(
+            "/jsondatanew",
+            tags=["API"],
+        )
+        def getmsg():
+            # From home.
+            return FileResponse("datanew.json")
 
     @property
     def endpoint(self) -> str:
