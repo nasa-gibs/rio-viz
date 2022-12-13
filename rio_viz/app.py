@@ -82,6 +82,7 @@ TileFormat = Union[RasterFormat, VectorTileFormat]
 TitilerIp = "titiler"
 VizexIp = "vizex"
 
+
 def cmr_search(msg):
 
     print("Start search")
@@ -101,12 +102,12 @@ def cmr_search(msg):
     titiler_endpoint = "http://" + TitilerIp + ":8000"
     data_endpoint = "http://" + VizexIp + ":8080"
 
-    # STAC endpoint.
-    stac_endpoint = 'https://cmr.earthdata.nasa.gov/stac'
-    stac_info = r.get(stac_endpoint).json()
+    # # STAC endpoint.
+    # stac_endpoint = 'https://cmr.earthdata.nasa.gov/stac'
+    # stac_info = r.get(stac_endpoint).json()
     # for s in stac_info: print(s)
-    print(f"STAC Version: {stac_info['stac_version']}. {stac_info['description']}")
-    print(f"There are {len(stac_info['links'])} STAC catalogs available in CMR.")
+    # print(f"STAC Version: {stac_info['stac_version']}. {stac_info['description']}")
+    # print(f"There are {len(stac_info['links'])} STAC catalogs available in CMR.")
 
     # Create dynamic STAC data search.
 
@@ -146,8 +147,8 @@ def cmr_search(msg):
     # Print coordinates.
     # roi = json.loads(spatial.to_json())['features'][0]['geometry']
     # roi = {'type': 'Polygon', 'coordinates': [[[-76.1, 37.1], [-76.1, 37.0], [-76.0, 37.0], [-76.0, 37.1], [-76.1, 37.1]]]}
-    roi = {'type': 'Polygon', 'coordinates': [[[west, north], [west, south], [east, south], [east, north], [west, north]]]}
-    print("Select spatial area: " + str(roi))
+    # roi = {'type': 'Polygon', 'coordinates': [[[west, north], [west, south], [east, south], [east, north], [west, north]]]}
+    # print("Select spatial area: " + str(roi))
 
     # Select temporal.
 
@@ -165,31 +166,30 @@ def cmr_search(msg):
     # date_range = "2022-03-01T00:00:00Z/2022-03-08T00:00:00Z"
 
     # World.
-    date_range = date_v  # "2022-07-01T00:00:00Z/2022-07-02T00:00:00Z"
-
-    print("Select date: " + date_range)
+    # date_range = date_v  # "2022-07-01T00:00:00Z/2022-07-02T00:00:00Z"
+    # print("Select date: " + date_range)
 
     # Open catalog.
-    catalog = pystac_client.Client.open(f'{stac_endpoint}/LPCLOUD/')
+    # catalog = pystac_client.Client.open(f'{stac_endpoint}/LPCLOUD/')
     # products = [c for c in catalog.get_children()]
 
-    search = catalog.search(
-        collections=collections,
-        intersects=roi,
-        datetime=date_range,
-        # limit=100
-    )
+    # search = catalog.search(
+    #     collections=collections,
+    #     intersects=roi,
+    #     datetime=date_range,
+    #     # limit=100
+    # )
 
-    tile_number = search.matched()
-    print("Tile number: " + str(tile_number))
-    if tile_number == 0:
-        return "nodata"
+    # tile_number = search.matched()
+    # print("Tile number: " + str(tile_number))
+    # if tile_number == 0:
+    #     return "nodata"
 
     # Limit is 100, but get 113. May just close.
-    item_collection = search.get_all_items()
+    # item_collection = search.get_all_items()
 
     # binary, not JSON.
-    # print(item_collection)
+    # print(item_collection.json())
 
     # List first 5 tiles..
     # print(list(item_collection)[0:5])
@@ -198,10 +198,6 @@ def cmr_search(msg):
 
     # Same as string.
     # print(item_collection[0].to_dict())
-
-    # Output string.
-    # with open('../../../server/hls-mosaic-str.json', 'w') as f:
-    # f.write(str(item_collection[0].to_dict()))
 
     # Filters.
     cloudcover = 25
@@ -214,12 +210,12 @@ def cmr_search(msg):
 
     BandShow = 1
 
-    # L30.
     TileBreaker = False
 
     # Mosaic files.
     files = []
     boxes = []
+    bands = []
 
     # Original mosaic band.
     mosaic_band = 'B01'
@@ -227,115 +223,134 @@ def cmr_search(msg):
     # Total images in MosaicJSON input file.
     img_number = 0
 
-    # Tiles.
-    for i in item_collection:
+    # {"features": [
+    #     {"geometry": {"coordinates": [[
+    #         [84.989696, 26.117197],
+    #         [86.097741, 26.117197],
+    #         [86.097741, 27.119521],
+    #         [84.989696, 27.119521],
+    #         [84.989696, 26.117197]
+    #     ]],
+    #         "type": "Polygon"
+    #     },
+    #         "properties": {"path": "s3://lp-prod-protected/HLSS30.020/HLS.S30.T45RUK.2022182T044711.v2.0/HLS.S30.T45RUK.2022182T044711.v2.0.B01.tif"}
+    #     },
+    # ]
+    # }
 
-        BandNumber = 0
-
-        # Filter cloud.
-        # if i.properties['eo:cloud_cover'] <= cloudcover:
-        if 1 == 1:
-            if i.collection_id == 'HLSL30.v2.0':
-
-                # Bands.
-                for a in i.assets:
-                    if any(b == a for b in l30_bands) and a == mosaic_band:
-                        # if any(b==a for b in l30_bands):
-
-                        # Print band.
-                        print(i.assets[a].href)
-                        files.append(i.assets[a].href.replace("https://data.lpdaac.earthdatacloud.nasa.gov/", "s3://"))
-                        boxes.append(i.bbox)
-
-                        # Donwload band.
-                        # os.system("wget " + i.assets[a].href)
-
-                        img_number += 1
-
-                        # Comment out for multiple images in one tile.
-                        BandNumber += 1
-
-                        # Use how many bands.
-                        if BandNumber == BandShow:
-                            # TileBreaker = True
-                            # Break inside.
-                            break
-
-                if TileBreaker:
-                    # Break outside.
-                    break
-
-    # S30.
-    TileBreaker = False
-
-    # Tiles.
-    for i in item_collection:
-
-        BandNumber = 0
-
-        # Filter cloud.
-        # if i.properties['eo:cloud_cover'] <= cloudcover:
-        if 1 == 1:
-            if i.collection_id == 'HLSS30.v2.0':
-
-                # Bands.
-                for a in i.assets:
-                    if any(b == a for b in s30_bands) and a == mosaic_band:
-                        # if any(b==a for b in s30_bands):
-
-                        # Print band.
-                        print(i.assets[a].href)
-                        files.append(i.assets[a].href.replace("https://data.lpdaac.earthdatacloud.nasa.gov/", "s3://"))
-                        boxes.append(i.bbox)
-
-                        # Download band.
-                        # os.system("wget " + i.assets[a].href)
-
-                        img_number += 1
-
-                        # Comment out for multiple images in one tile.
-                        BandNumber += 1
-
-                        # Use how many bands.
-                        if BandNumber == BandShow:
-                            # TileBreaker = True
-                            # Break inside.
-                            break
-                if TileBreaker:
-                    # Break outside.
-                    break
-
-    # print(files)
-    # print(boxes)
-
-    def fname_to_feature(file: str, box: float) -> Feature:
-        print(file)
-        print(box)
+    def file_box_feature(file: str, box: float) -> Feature:
         return Feature(
             geometry=Polygon.from_bounds(
-                box[0], box[1], box[2], box[3]  # w, s, e, n.
+                box[0], box[1], box[2], box[3] #w, s, e, n.
             ),
             properties={
                 "path": file,
             }
+            # ,
+            # type={"Feature"}
         )
 
+    # CMR API.
+    cmr = 'https://cmr.earthdata.nasa.gov/search/granules.stac?collection_concept_id='
+    id = 'C2021957295-LPCLOUD'
+    spatial = '&bounding_box='
+    area = west_v + ',' + south_v + ',' + east_v + ',' + north_v
+    temporal = '&temporal[]='
+    # daterange = '2022-10-01,2022-11-04'
+    daterange = '2022-07-01,2022-07-02'
+    # daterange = date_range.replace("/", ",")
+    # daterange = daterange("T00:00:00Z", "")
+    print(daterange)
+    pagenumber = '&page_num='
+    number = 1
+    pagesize = '&page_size='
+    size = '2000'
+    # size = '3'
+    # scroll = '&scroll=true'
+
+    item_n = 2000
+    while item_n == 2000:
+        # url = cmr + id + spatial + area + temporal + daterange + pagenumber + str(number) + pagesize + size + scroll
+        # url = cmr + id + spatial + area + temporal + daterange + pagenumber + str(number) + pagesize + size
+        url = cmr + id + temporal + daterange + pagenumber + str(number) + pagesize + size
+        requested_data = r.get(url)
+        result = json.loads(requested_data.text)
+        item_n = len(result["features"])
+        print(item_n)
+        for item in range(item_n):
+            box = result["features"][item]["bbox"]
+            assets = result["features"][item]["assets"]
+            for asset in assets.values():
+                if "B01.tif" in asset["href"]:
+                    file = asset["href"].replace("https://data.lpdaac.earthdatacloud.nasa.gov/", "s3://")
+                    files.append(file)
+                    boxes.append(box)
+                    # print(file)
+                    # print(box)
+                    img_number += 1
+        number = number + 1
+        # break
+
+    # STAC API.
+    # Tiles.
+    # for i in item_collection:
+    #     BandNumber = 0
+    #     # Filter cloud not used for now.
+    #     # if i.properties['eo:cloud_cover'] <= cloudcover:
+    #     if i.collection_id == 'HLSL30.v2.0':
+    #         bands = l30_bands
+    #     else:
+    #         bands = s30_bands
+    #     # Bands.
+    #     for a in i.assets:
+    #         if any(b == a for b in bands) and a == mosaic_band:
+    #             # if any(b==a for b in bands):
+    #             # Print band.
+    #             # print(i.assets[a].href)
+    #             box = i.bbox
+    #             file = i.assets[a].href.replace("https://data.lpdaac.earthdatacloud.nasa.gov/", "s3://")
+    #             files.append(file)
+    #             boxes.append(box)
+    #             print(file)
+    #             print(box)
+    #             # Donwload band.
+    #             # os.system("wget " + i.assets[a].href)
+    #             img_number += 1
+    #             # Comment out for multiple images in one tile.
+    #             BandNumber += 1
+    #             # Use how many bands.
+    #             if BandNumber == BandShow:
+    #                 # TileBreaker = True
+    #                 # Break inside.
+    #                 break
+    #     if TileBreaker:
+    #         # Break outside.
+    #         break
+
+    if img_number == 0:
+        return "nodata"
+    print("Tile number: " + str(img_number))
+
     features = [
-        fname_to_feature(files[f], boxes[f]).dict(exclude_none=True) for f in range(img_number)
+        file_box_feature(files[f], boxes[f]).dict(exclude_none=True) for f in range(img_number)
     ]
 
-    # Feature geojson.
-    feature_geojson = {'type': 'FeatureCollection', 'features': features}
-    # print(feature_geojson)
+    boundjson = {'features': features, 'type': 'FeatureCollection'}
+
+    boundfile = open("bound.json", 'w')
+    json.dump(boundjson, boundfile)
 
     # One big mosaic bound.
-    bounds = featureBounds(feature_geojson)
+    bounds = featureBounds(boundjson)
+    # print(bounds)
+    lat = (bounds[3] - bounds[1]) / 2 + bounds[1]
+    lon = (bounds[2] - bounds[0]) / 2 + bounds[0]
 
     # Select area map.
-    m = Map(
-        location=((float(south) + float(north)) / 2, (float(west) + float(east)) / 2),
-        zoom_start=8
-    )
+    # m = Map(
+    #     location=((float(south) + float(north)) / 2, (float(west) + float(east)) / 2),
+    #     zoom_start=8
+    # )
 
     # Get zoom level.
     with COGReader(files[0]) as cog:
@@ -379,7 +394,7 @@ def cmr_search(msg):
     # ).json()
     # return api_json["tiles"][0]
 
-    return jsonfile
+    return "[" + str(lat) + "," + str(lon) + "]"
 
 # end of search.
 
@@ -1044,33 +1059,41 @@ class viz:
         async def search(msg: Item) -> dict:
             print("Get search msg: ")
             print(msg)
-            jsonfile = cmr_search(msg)
+            center = cmr_search(msg)
 
             # if url != "nodata" and url != "searchdone":
             #     preipsize = len("http://")
             #     ipsize = len(TitilerIp)
             #     url = url[:preipsize] + "0.0.0.0" + url[preipsize + ipsize:]
 
-            print("Respond json file: " + jsonfile)
+            # print("Respond json file: " + jsonfile)
             return {
-                "jsonfile": jsonfile,
+                "center": center,
             }
 
         @self.router.get(
             "/jsondata",
             tags=["API"],
         )
-        def getmsg():
+        def getjsondata():
             # From home.
             return FileResponse("data.json")
-        
+
         @self.router.get(
             "/jsondatanew",
             tags=["API"],
         )
-        def getmsg():
+        def getjsondatanew():
             # From home.
             return FileResponse("datanew.json")
+
+        @self.router.get(
+            "/jsonbound",
+            tags=["API"],
+        )
+        def jsonbound():
+            # From home.
+            return FileResponse("bound.json")
 
     @property
     def endpoint(self) -> str:
