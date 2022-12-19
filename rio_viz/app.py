@@ -78,14 +78,8 @@ TileFormat = Union[RasterFormat, VectorTileFormat]
 # s.connect(("8.8.8.8", 80))
 # ContainerIp = s.getsockname()[0]
 
-# Must pub ip inside container, not 0.0.0.0.
-TitilerIp = "titiler"
-VizexIp = "vizex"
-
-
 def cmr_search(msg):
-
-    print("Start search")
+    print("Start STAC search...")
 
     west_v = msg.west
     east_v = msg.east
@@ -99,8 +93,12 @@ def cmr_search(msg):
     scale_v = msg.scale
 
     # TiTiler server.
-    titiler_endpoint = "http://" + TitilerIp + ":8000"
-    data_endpoint = "http://" + VizexIp + ":8080"
+
+    # Must pub ip inside container, not 0.0.0.0.
+    # TitilerIp = "titiler"
+    # VizexIp = "vizex"
+    # titiler_endpoint = "http://" + TitilerIp + ":8000"
+    # data_endpoint = "http://" + VizexIp + ":8080"
 
     # # STAC endpoint.
     # stac_endpoint = 'https://cmr.earthdata.nasa.gov/stac'
@@ -109,45 +107,14 @@ def cmr_search(msg):
     # print(f"STAC Version: {stac_info['stac_version']}. {stac_info['description']}")
     # print(f"There are {len(stac_info['links'])} STAC catalogs available in CMR.")
 
-    # Create dynamic STAC data search.
-
-    print("Start STAC search...")
-
     # Select collection.
-    # collections = ['HLSL30.v2.0', 'HLSS30.v2.0']
-    # collections = ['HLSL30.v2.0']
-    collections = collection_v  # ['HLSS30.v2.0']
-    print("Select collection: " + str(collections))
-
-    # Select spatial.
-
-    # DC
-    # west  = -76.5
-    # east  = -76
-    # south = 38.5
-    # north = 39
-
-    # US
-    # west  = -125
-    # east  = -66
-    # south = 25
-    # north = 50
-
-    # World 4300
-    # west  = -85
-    # east  = 85
-    # south = -85
-    # north = 85
-
-    west = west_v
-    east = east_v
-    south = south_v
-    north = north_v
+    # collection_v = ['HLSL30.v2.0', 'HLSS30.v2.0']
+    # collection_v = ['HLSL30.v2.0']
 
     # Print coordinates.
     # roi = json.loads(spatial.to_json())['features'][0]['geometry']
     # roi = {'type': 'Polygon', 'coordinates': [[[-76.1, 37.1], [-76.1, 37.0], [-76.0, 37.0], [-76.0, 37.1], [-76.1, 37.1]]]}
-    # roi = {'type': 'Polygon', 'coordinates': [[[west, north], [west, south], [east, south], [east, north], [west, north]]]}
+    # roi = {'type': 'Polygon', 'coordinates': [[[west_v, north_v], [west_v, south_v], [east_v, south_v], [east_v, north_v], [west_v, north_v]]]}
     # print("Select spatial area: " + str(roi))
 
     # Select temporal.
@@ -174,7 +141,7 @@ def cmr_search(msg):
     # products = [c for c in catalog.get_children()]
 
     # search = catalog.search(
-    #     collections=collections,
+    #     collection=collection_v,
     #     intersects=roi,
     #     datetime=date_range,
     #     # limit=100
@@ -252,27 +219,24 @@ def cmr_search(msg):
 
     # CMR API.
     cmr = 'https://cmr.earthdata.nasa.gov/search/granules.stac?collection_concept_id='
-    id = 'C2021957295-LPCLOUD'
+    if collection_v == 'HLSL30.v2.0' or collection_v == 'HLSS30.v2.0':
+        id = 'C2021957295-LPCLOUD'
+    # print(id)
     spatial = '&bounding_box='
     area = west_v + ',' + south_v + ',' + east_v + ',' + north_v
     temporal = '&temporal[]='
-    # daterange = '2022-10-01,2022-11-04'
-    daterange = '2022-07-01,2022-07-02'
-    # daterange = date_range.replace("/", ",")
-    # daterange = daterange("T00:00:00Z", "")
-    print(daterange)
+    # date_v = '2022-07-01T00:00:00Z,2022-07-02T00:00:00Z'
     pagenumber = '&page_num='
     number = 1
     pagesize = '&page_size='
     size = '2000'
-    # size = '3'
     # scroll = '&scroll=true'
 
     item_n = 2000
     while item_n == 2000:
-        # url = cmr + id + spatial + area + temporal + daterange + pagenumber + str(number) + pagesize + size + scroll
-        # url = cmr + id + spatial + area + temporal + daterange + pagenumber + str(number) + pagesize + size
-        url = cmr + id + temporal + daterange + pagenumber + str(number) + pagesize + size
+        # url = cmr + id + spatial + area + temporal + date_v + pagenumber + str(number) + pagesize + size + scroll
+        # url = cmr + id + spatial + area + temporal + date_v + pagenumber + str(number) + pagesize + size
+        url = cmr + id + temporal + date_v + pagenumber + str(number) + pagesize + size
         requested_data = r.get(url)
         result = json.loads(requested_data.text)
         item_n = len(result["features"])
@@ -348,7 +312,7 @@ def cmr_search(msg):
 
     # Select area map.
     # m = Map(
-    #     location=((float(south) + float(north)) / 2, (float(west) + float(east)) / 2),
+    #     location=((float(south_v) + float(north_v)) / 2, (float(west_v) + float(east_v)) / 2),
     #     zoom_start=8
     # )
 
@@ -1057,16 +1021,9 @@ class viz:
             "/search"
         )
         async def search(msg: Item) -> dict:
-            print("Get search msg: ")
-            print(msg)
+            print("Get search msg: " + str(msg))
             center = cmr_search(msg)
 
-            # if url != "nodata" and url != "searchdone":
-            #     preipsize = len("http://")
-            #     ipsize = len(TitilerIp)
-            #     url = url[:preipsize] + "0.0.0.0" + url[preipsize + ipsize:]
-
-            # print("Respond json file: " + jsonfile)
             return {
                 "center": center,
             }

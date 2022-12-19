@@ -204,8 +204,8 @@
         </div>
         <div class='px6 pt6 pb6'>
           <div class='align-center'>
-            <input id="start-date" type="text" placeholder="2022-10-01T00:00:00Z" />
-            <input id="end-date" type="text" placeholder="2022-11-04T00:00:00Z" />
+            <input id="start-date" type="text" placeholder="2022-07-01T00:00:00Z" />
+            <input id="end-date" type="text" placeholder="2022-07-02T00:00:00Z" />
           </div>
         </div>
       </section>
@@ -275,16 +275,17 @@
 
   <script>
 
-    // Compose define this for outside of container.
+    // Compose define this for outside of container Tititler.
     OutsideIp = "0.0.0.0"
 
-    // Pub ip or 0.0.0.0 outside
+    // Outside container use public ip or 0.0.0.0
+    // DataIp = "0.0.0.0"
+
+    // Inside container use name for Vizex.
     DataIp = "vizex"
 
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
-
-    var jsonfile = ""
 
     L_NO_TOUCH = false;
     L_DISABLE_3D = false;
@@ -430,7 +431,6 @@
 
     add_basemap()
 
-    // Not used.
     const remove_layer = () => {
 
       map.eachLayer(function (layer) {
@@ -455,16 +455,17 @@
     min_v = document.getElementById('data-min').value
     max_v = document.getElementById('data-max').value
 
-    function add_img(jsonfile, red_v, green_v, blue_v, min_v, max_v) {
-
+    function add_img(defaultdata, red_v, green_v, blue_v, min_v, max_v) {
       url = ''
-
-      if (jsonfile == "data.json") {
+      // Default image.
+      if (defaultdata == "data.json") {
         url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
       }
+      // New image datanew.json route: jsondatanew
       else {
-        // if (jsonfile == "datanew.json") {
         url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondatanew&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+        // Black color.
+        // url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondatanew&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&post_process=swir"
       }
 
       console.log(url)
@@ -486,9 +487,8 @@
       ).addTo(map);
     }
 
-    jsonfile = "data.json"
-    // Add image when start if it has data in data server.
-    // add_img(jsonfile, red_v, green_v, blue_v, min_v, max_v)
+    // Default image when start if it has data in data server.
+    // add_img("data.json", red_v, green_v, blue_v, min_v, max_v)
 
     // Draw polygon.
     // var Draw = new MapboxDraw({
@@ -587,7 +587,7 @@
 
       // map.removeLayer(layer_img);
       // Change band and scale.
-      add_img(jsonfile, red_v, green_v, blue_v, min_v, max_v)
+      add_img("newdata", red_v, green_v, blue_v, min_v, max_v)
     })
 
     // Search.
@@ -615,30 +615,64 @@
       // let north_v = map.getBounds()._northEast.lat
 
       // World lon can be 180, lat max is 89.9
-      // west_v = -85
-      // east_v = 85
-      // south_v = -85
-      // north_v = 85
+      west_v = -180
+      east_v = 180
+      south_v = -89.9
+      north_v = 89.9
 
-      // DC
-      // west_v = -78.5 //-77 //-76.5
-      // east_v = -74 //-76.5 //-76
-      // south_v = 36.5 //38.5
-      // north_v = 41 //39
+      // US
+      // west  = -125
+      // east  = -66
+      // south = 25
+      // north = 50
 
-      west_v = -77 //-76.5
-      south_v = 38.5
-      east_v = -76.5 //-76
-      north_v = 39
+      // dc ny images.
+      // west_v = -78.5
+      // south_v = 36.5
+      // east_v = -74
+      // north_v = 41
+
+      // dc 9 images. 1 missing image.
+      // west_v = -77.5
+      // south_v = 38.5
+      // east_v = -75.5 
+      // north_v = 40
+
+      // dc, 4 images. 1 color is different. when zoom, miss tiles.
+      // west_v = -76.5
+      // south_v = 38.5
+      // east_v = -76
+      // north_v = 39
+
+      // 2, right is diff color.
+      // west_v = -76.25
+      // south_v = 38.5
+      // east_v = -76
+      // north_v = 38.75
+
+      // 1 diff color.
+      // west_v = -76
+      // south_v = 38.5
+      // east_v = -75.75
+      // north_v = 38.75
+
+      // dc 2 good image.
+      // west_v = -77
+      // south_v = 38.5
+      // east_v = -76.5
+      // north_v = 39
 
       let startdate_v = document.getElementById('start-date').value
       let enddate_v = document.getElementById('end-date').value
 
       if (startdate_v == "") {
-        startdate_v = "2022-10-01T00:00:00Z"
+        // dc good image.
+        // startdate_v = "2022-10-01T00:00:00Z"
+        startdate_v = "2022-07-01T00:00:00Z"
       }
       if (enddate_v == "") {
-        enddate_v = "2022-11-04T00:00:00Z"
+        // enddate_v = "2022-11-04T00:00:00Z"
+        enddate_v = "2022-07-02T00:00:00Z"
       }
 
       const collection_v = document.getElementById('layer-selector').value
@@ -649,37 +683,20 @@
       min_v = document.getElementById('data-min').value
       max_v = document.getElementById('data-max').value
 
+      // Search.
       searchstr = {
         "west": west_v,
         "east": east_v,
         "south": south_v,
         "north": north_v,
-        "date": startdate_v + "/" + enddate_v,
+        "date": startdate_v + "," + enddate_v,
         "collection": collection_v,
         "red": red_v,
         "green": green_v,
         "blue": blue_v,
         "scale": min_v + "," + max_v
       }
-      console.log("Send string: " + JSON.stringify(searchstr))
-
-      // Search API to pass searchResult.
-
-      // Get data.
-      // fetch("http://"+OutsideIp+":8080/getmsg")
-      //   .then(response => {
-      //     if (response.ok)
-      //       return response.json()
-      //     throw new Error('Server no response.')
-      //   })
-      //   .then(data => {
-      //     console.log("Reponse data: "+data.data)
-      //   })
-      //   .catch(error => {
-      //     console.warn(error)
-      //   })
-
-      // Search.
+      console.log("Send request: " + JSON.stringify(searchstr))
       fetch("http://" + OutsideIp + ":8080/search",
         {
           method: "POST",
@@ -703,15 +720,13 @@
             center = data.center
             console.log("Get center: " + center)
 
-            // Searched image.
             // map.removeLayer(layer_img);
             // remove_layer()
             var latlon = JSON.parse(center)
-            console.log(latlon[0])
-            console.log(latlon[1])
+            console.log(latlon[0] + "," + latlon[1])
             // define_map(latlon[0], latlon[1])
             // add_basemap()
-            add_img("some", red_v, green_v, blue_v, min_v, max_v)
+            add_img("newdata", red_v, green_v, blue_v, min_v, max_v)
           }
         })
         .catch(error => {
