@@ -67,6 +67,10 @@ from pydantic import BaseModel
 
 from fastapi.responses import FileResponse
 
+from os import getcwd
+
+from datetime import datetime
+
 src_dir = str(pathlib.Path(__file__).parent.joinpath("src"))
 template_dir = str(pathlib.Path(__file__).parent.joinpath("templates"))
 templates = Jinja2Templates(directory=template_dir)
@@ -77,6 +81,12 @@ TileFormat = Union[RasterFormat, VectorTileFormat]
 # s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # s.connect(("8.8.8.8", 80))
 # ContainerIp = s.getsockname()[0]
+
+jsonfile = ""
+
+# Check bounds crossinng date line.
+# absvalue = 0
+# absfile = ""
 
 def cmr_search(msg):
     print("Start STAC search...")
@@ -217,6 +227,9 @@ def cmr_search(msg):
             # type={"Feature"}
         )
 
+    # global absvalue
+    # global absfile
+
     # CMR API.
     cmr = 'https://cmr.earthdata.nasa.gov/search/granules.stac?collection_concept_id='
     if collection_v == 'HLSL30.v2.0' or collection_v == 'HLSS30.v2.0':
@@ -234,9 +247,13 @@ def cmr_search(msg):
 
     item_n = 2000
     while item_n == 2000:
+        url = ""
+        if west_v == "":
+            url = cmr + id + temporal + date_v + pagenumber + str(number) + pagesize + size
+        else:
+            url = cmr + id + spatial + area + temporal + date_v + pagenumber + str(number) + pagesize + size
         # url = cmr + id + spatial + area + temporal + date_v + pagenumber + str(number) + pagesize + size + scroll
-        # url = cmr + id + spatial + area + temporal + date_v + pagenumber + str(number) + pagesize + size
-        url = cmr + id + temporal + date_v + pagenumber + str(number) + pagesize + size
+
         requested_data = r.get(url)
         result = json.loads(requested_data.text)
         item_n = len(result["features"])
@@ -249,6 +266,12 @@ def cmr_search(msg):
                     file = asset["href"].replace("https://data.lpdaac.earthdatacloud.nasa.gov/", "s3://")
                     files.append(file)
                     boxes.append(box)
+
+                    # tmpvalue = abs(box[0] - box[2])
+                    # if tmpvalue > absvalue:
+                    #     absvalue = tmpvalue
+                    #     absfile = file
+
                     # print(file)
                     # print(box)
                     img_number += 1
@@ -328,7 +351,13 @@ def cmr_search(msg):
 
     # Create mosaic JSON file. MosaicJSON.from_feature look in feature.properties.path to get dataset path.
 
-    jsonfile = "datanew.json"
+    now = datetime.now()
+
+    global jsonfile 
+    # Use number. No 0 at beginning.
+    jsonfile = now.strftime("%Y%m%d%H%M%S")
+    jsonfile = now.strftime("%Y%m%d%H%M%S.json")
+    print(jsonfile)
 
     mosaicdata = MosaicJSON.from_features(features, minzoom=info.minzoom, maxzoom=info.maxzoom)
 
@@ -358,10 +387,16 @@ def cmr_search(msg):
     # ).json()
     # return api_json["tiles"][0]
 
-    return "[" + str(lat) + "," + str(lon) + "]"
+    # responseMsg = "[" + str(lat) + "," + str(lon) + "," + jsonfile + "]"
 
-# end of search.
+    responseMsg = {'lat': lat,'lon': lon,'file': jsonfile}
+    
+    # print(absvalue)
+    # print(absfile)
+    
+    return responseMsg
 
+# end of cmr_search.
 
 class CacheControlMiddleware(BaseHTTPMiddleware):
     """MiddleWare to add CacheControl in response headers."""
@@ -1021,28 +1056,20 @@ class viz:
             "/search"
         )
         async def search(msg: Item) -> dict:
-            print("Get search msg: " + str(msg))
-            center = cmr_search(msg)
+            print("Get request msg: " + str(msg))
+            responseMsg = cmr_search(msg)
+            print("Response msg: " + str(responseMsg))
+
+            # import time
+            # time.sleep(100)
 
             return {
-                "center": center,
+                "response": responseMsg
             }
 
-        @self.router.get(
-            "/jsondata",
-            tags=["API"],
-        )
-        def getjsondata():
-            # From home.
-            return FileResponse("data.json")
-
-        @self.router.get(
-            "/jsondatanew",
-            tags=["API"],
-        )
-        def getjsondatanew():
-            # From home.
-            return FileResponse("datanew.json")
+        @self.router.get("/jsondata/{name_file}")
+        def getjsondata(name_file: str):
+            return FileResponse(path=getcwd() + "/" + name_file)
 
         @self.router.get(
             "/jsonbound",

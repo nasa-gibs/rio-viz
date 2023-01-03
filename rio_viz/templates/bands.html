@@ -286,6 +286,10 @@
 
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
+    var area
+    var name_file
+    var layerGroup = new L.LayerGroup();
+    var center_lon, center_lat
 
     L_NO_TOUCH = false;
     L_DISABLE_3D = false;
@@ -411,7 +415,11 @@
       );
       L.control.zoom({ position: 'topright' }).addTo(map);
     }
-    define_map(38.75, -76.25)
+    // Default center.
+    center_lat = 38.75
+    center_lon = -76.25
+    define_map(center_lat, center_lon)
+    layerGroup.addTo(map);
 
     const add_basemap = () => {
       var layer_basemap = L.tileLayer(
@@ -432,20 +440,9 @@
     add_basemap()
 
     const remove_layer = () => {
-
-      map.eachLayer(function (layer) {
-        console.log(JSON.stringify(layer))
-        map.removeLayer(layer);
-      });
-
-      // if (map.hasLayer(layer_img)) {
-      //     map.removeLayer(layer_img)
-
-      add_basemap()
-
-      scope.features = []
-      scope.next_token = undefined
-      scope.query = {}
+      // scope.features = []
+      // scope.next_token = undefined
+      // scope.query = {}
       // document.getElementById('results-items').innerHTML = ''
     }
 
@@ -455,21 +452,17 @@
     min_v = document.getElementById('data-min').value
     max_v = document.getElementById('data-max').value
 
-    function add_img(defaultdata, red_v, green_v, blue_v, min_v, max_v) {
-      url = ''
-      // Default image.
-      if (defaultdata == "data.json") {
-        url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
-      }
-      // New image datanew.json route: jsondatanew
-      else {
-        url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondatanew&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
-        // Black color.
-        // url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondatanew&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&post_process=swir"
-      }
+    function add_img(name_file, red_v, green_v, blue_v, min_v, max_v) {
 
-      console.log(url)
-      console.log("Add image.")
+      url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+
+      // Use post process is black color.
+      // url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&post_process=swir"
+
+      // Test server.
+      // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/4c640d25fd8dd78aef47721a71ee8e96/WGS1984Quad/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
+
+      console.log("Add image: " + url)
 
       layer_img = L.tileLayer(
         url,
@@ -479,19 +472,22 @@
           "maxNativeZoom": 12,
           "maxZoom": 12,
           "minZoom": 8,
+          // "minZoom": 9, // Test server.
           "noWrap": false,
           "opacity": 1,
           "subdomains": "abc",
           "tms": false
         }
       ).addTo(map);
+
+      layerGroup.addLayer(layer_img);
     }
 
     // Default image when start if it has data in data server.
-    // add_img("data.json", red_v, green_v, blue_v, min_v, max_v)
+    // add_img("defaultdata.json", red_v, green_v, blue_v, min_v, max_v)
 
     // Draw polygon.
-    // var Draw = new MapboxDraw({
+    // var draw_area = new MapboxDraw({
     //   displayControlsDefault: false,
     // });
 
@@ -512,11 +508,9 @@
 
     // Draw.
     document.getElementById('bbox').addEventListener('click', () => {
-      // console.log("Start draw ...")
-
-      //Draw.deleteAll();
-      //if (Draw.getMode() !== 'simple_select') Draw.changeMode('simple_select');
-      //Draw.changeMode('draw_polygon')
+      //draw_area.deleteAll();
+      //if (draw_area.getMode() !== 'simple_select') draw_area.changeMode('simple_select');
+      //draw_area.changeMode('draw_polygon')
 
       // Draw.
       // NewPolygon = new L.polygon([]).addTo(map);
@@ -576,8 +570,9 @@
       // });
 
     })
-    // map.addControl(Draw);
+    // map.addControl(draw_area);
 
+    // Change band and scale.
     document.getElementById('display_btn').addEventListener('click', () => {
       red_v = document.getElementById('r-selector').value
       green_v = document.getElementById('g-selector').value
@@ -585,9 +580,14 @@
       min_v = document.getElementById('data-min').value
       max_v = document.getElementById('data-max').value
 
-      // map.removeLayer(layer_img);
-      // Change band and scale.
-      add_img("newdata", red_v, green_v, blue_v, min_v, max_v)
+      if (map.hasLayer(layer_img)) {
+        layerGroup.clearLayers();
+        layerGroup.removeLayer(layer_img)
+        map.removeLayer(layer_img)
+      }
+
+      add_img(name_file, red_v, green_v, blue_v, min_v, max_v)
+
     })
 
     // Search.
@@ -596,10 +596,10 @@
       filter = { op: 'and', args: [] }
 
       // Get polygon.
-      // const draws = Draw.getAll()
+      // const draws = draw_area.getAll()
       // if (draws.features.length !== 0)
       //   filter.args.push({ "op": "s_intersects", "args": [{ "property": "geometry" }, draws.features[0].geometry] })
-      // Draw.deleteAll();
+      // draw_area.deleteAll();
       // console.log("area: " + draws.features[0].geometry.coordinates[0])
 
       // Get xy.
@@ -614,47 +614,23 @@
       // let south_v = map.getBounds()._northEast.lng
       // let north_v = map.getBounds()._northEast.lat
 
-      // World lon can be 180, lat max is 89.9
+      // STAC API World lon can be 180, lat max is 89.9
+      // west_v = -180
+      // east_v = 180
+      // south_v = -89.9
+      // north_v = 89.9
+
+      // CMR API default.
       west_v = -180
       east_v = 180
-      south_v = -89.9
-      north_v = 89.9
+      south_v = -90
+      north_v = 90
 
       // US
       // west  = -125
       // east  = -66
       // south = 25
       // north = 50
-
-      // dc ny images.
-      // west_v = -78.5
-      // south_v = 36.5
-      // east_v = -74
-      // north_v = 41
-
-      // dc 9 images. 1 missing image.
-      // west_v = -77.5
-      // south_v = 38.5
-      // east_v = -75.5 
-      // north_v = 40
-
-      // dc, 4 images. 1 color is different. when zoom, miss tiles.
-      // west_v = -76.5
-      // south_v = 38.5
-      // east_v = -76
-      // north_v = 39
-
-      // 2, right is diff color.
-      // west_v = -76.25
-      // south_v = 38.5
-      // east_v = -76
-      // north_v = 38.75
-
-      // 1 diff color.
-      // west_v = -76
-      // south_v = 38.5
-      // east_v = -75.75
-      // north_v = 38.75
 
       // dc 2 good image.
       // west_v = -77
@@ -668,6 +644,7 @@
       if (startdate_v == "") {
         // dc good image.
         // startdate_v = "2022-10-01T00:00:00Z"
+        // Global image.
         startdate_v = "2022-07-01T00:00:00Z"
       }
       if (enddate_v == "") {
@@ -713,36 +690,66 @@
           throw new Error('Server no response.')
         })
         .then(data => {
-          if (data.centerlatlon == "nodata") {
+          msg = data.response
+          console.log("Get response: " + JSON.stringify(msg))
+
+          if (msg == "nodata") {
             console.log("No data: ")
           }
           else {
-            center = data.center
-            console.log("Get center: " + center)
+            // sleep(10000);
 
-            // map.removeLayer(layer_img);
-            // remove_layer()
-            var latlon = JSON.parse(center)
-            console.log(latlon[0] + "," + latlon[1])
-            // define_map(latlon[0], latlon[1])
-            // add_basemap()
-            add_img("newdata", red_v, green_v, blue_v, min_v, max_v)
+            // var msgArray = JSON.parse(msg)
+            // center_lat = msgArray[0]
+            // center_lon = msgArray[1]
+            // name_file = msgArray[2]
+
+            center_lat = msg.lat
+            center_lon = msg.lon
+            name_file = msg.file
+
+            // console.log(center_lat + "," + center_lon + "," + name_file)
+
+            // if (map.hasLayer(layer_img)) {
+            //   layerGroup.clearLayers();
+            //   layerGroup.removeLayer(layer_img)
+            //   map.removeLayer(layer_img)
+            // }
+            // if (map.hasLayer(area)) {
+            //   layerGroup.clearLayers();
+            //   layerGroup.removeLayer(area)
+            //   map.removeLayer(area)
+            // }
+            // map.removeLayer(L.tileLayer)
+            // map.removeLayer(L.geoJson);
+            // L.geoJSON().clearLayers();
+
+            // Remove basemap, bound, img.
+            map.eachLayer(function (layer) {
+              map.removeLayer(layer);
+            });
+
+            center_lat = (south_v + north_v) / 2
+            center_lon = (west_v + east_v) / 2
+            // define_map(center_lat, center_lon)
+            add_basemap()
+            add_img(name_file, red_v, green_v, blue_v, min_v, max_v)
+
+            // Bound,
+            fetch("http://" + OutsideIp + ":8080/jsonbound")
+              .then(response => {
+                if (response.ok)
+                  return response.json()
+                throw new Error('Server no response.')
+              })
+              .then(data => {
+                console.log("Add bounds.")
+                area_add(data)
+              })
+              .catch(error => {
+                console.warn(error)
+              })
           }
-        })
-        .catch(error => {
-          console.warn(error)
-        })
-
-      // Draw bound,
-      fetch("http://" + OutsideIp + ":8080/jsonbound")
-        .then(response => {
-          if (response.ok)
-            return response.json()
-          throw new Error('Server no response.')
-        })
-        .then(data => {
-          console.log("Add bounds.")
-          area_add(data)
         })
         .catch(error => {
           console.warn(error)
@@ -770,76 +777,7 @@
       nextSection.classList.toggle('active')
     }
 
-    // Draw area.
-
-    // function area_styler(feature) {
-    //     switch (feature.properties.path) {
-    //         default:
-    //             return { "dashArray": "1", "fillOpacity": 0, "opacity": 1, "weight": 1 };
-    //     }
-    // }
-    // function area_onEachFeature(feature, layer) {
-    //     layer.on({
-    //     });
-    // };
-    // var area = L.geoJson(null, {
-    //     onEachFeature: area_onEachFeature,
-    //     style: area_styler,
-    // });
-    // function area_add(data) {
-    //     area
-    //         .addData(data)
-    //         .addTo(map);
-    // }
-    // box = [
-    //     [[[-77.333633, 38.73821], [-76.038105, 38.73821], [-76.038105, 39.745494], [-77.333633, 39.745494], [-77.333633, 38.73821]]],
-    //     [[[-76.152751, 37.853951], [-74.887526, 37.853951], [-74.887526, 38.848996], [-76.152751, 38.848996], [-76.152751, 37.853951]]],
-    //     [[[-77.303931, 37.837503], [-76.025337, 37.837503], [-76.025337, 38.844374], [-77.303931, 38.844374], [-77.303931, 37.837503]]],
-    //     [[[-76.152751, 37.853951], [-74.887526, 37.853951], [-74.887526, 38.848996], [-76.152751, 38.848996], [-76.152751, 37.853951]]]
-    // ]
-    // path = [
-    //     "s3://lp-prod-protected/HLSS30.020/HLS.S30.T18SUJ.2022060T155201.v2.0/HLS.S30.T18SUJ.2022060T155201.v2.0.B01.tif",
-    //     "s3://lp-prod-protected/HLSS30.020/HLS.S30.T18SVH.2022060T155201.v2.0/HLS.S30.T18SVH.2022060T155201.v2.0.B01.tif",
-    //     "s3://lp-prod-protected/HLSS30.020/HLS.S30.T18SUH.2022060T155201.v2.0/HLS.S30.T18SUH.2022060T155201.v2.0.B01.tif",
-    //     "s3://lp-prod-protected/HLSS30.020/HLS.S30.T18SVH.2022065T155029.v2.0/HLS.S30.T18SVH.2022065T155029.v2.0.B01.tif"
-    // ]
-    // area_add({
-    //     "features":
-    //         [
-    //             {
-    //                 "geometry": {
-    //                     "coordinates": box[0],
-    //                     "type": "Polygon"
-    //                 },
-    //                 "properties": { "path": path[0] },
-    //                 "type": "Feature"
-    //             },
-    //             {
-    //                 "geometry": {
-    //                     "coordinates": box[1],
-    //                     "type": "Polygon"
-    //                 },
-    //                 "properties": { "path": path[1] },
-    //                 "type": "Feature"
-    //             },
-    //             {
-    //                 "geometry": {
-    //                     "coordinates": box[2],
-    //                     "type": "Polygon"
-    //                 },
-    //                 "properties": { "path": path[2] },
-    //                 "type": "Feature"
-    //             },
-    //             {
-    //                 "geometry": {
-    //                     "coordinates": box[3],
-    //                     "type": "Polygon"
-    //                 },
-    //                 "properties": { "path": path[3] },
-    //                 "type": "Feature"
-    //             }]
-    // });
-
+    // Bound.
     function area_styler(feature) {
       switch (feature.properties.path) {
         default:
@@ -852,13 +790,14 @@
       });
     };
 
-    var area = L.geoJson(null, {
-      onEachFeature: area_onEachFeature,
-
-      style: area_styler,
-    });
-
     function area_add(data) {
+      area = L.geoJson(null, {
+        onEachFeature: area_onEachFeature,
+        style: area_styler,
+      });
+
+      layerGroup.addLayer(area);
+
       area
         .addData(data)
         .addTo(map);
