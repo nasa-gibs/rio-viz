@@ -322,16 +322,18 @@ def cmr_search(msg):
         file_box_feature(files[f], boxes[f]).dict(exclude_none=True) for f in range(img_number)
     ]
 
-    boundjson = {'features': features, 'type': 'FeatureCollection'}
+    # boundjson = {'features': features, 'type': 'FeatureCollection'}
 
-    boundfile = open("bound.json", 'w')
-    json.dump(boundjson, boundfile)
+    # boundfile = open("bound.json", 'w')
+    # json.dump(boundjson, boundfile)
 
-    # One big mosaic bound.
-    bounds = featureBounds(boundjson)
-    # print(bounds)
-    lat = (bounds[3] - bounds[1]) / 2 + bounds[1]
-    lon = (bounds[2] - bounds[0]) / 2 + bounds[0]
+    # # One big mosaic bound.
+    # bounds = featureBounds(boundjson)
+    # # print(bounds)
+    # lat = (bounds[3] - bounds[1]) / 2 + bounds[1]
+    # lon = (bounds[2] - bounds[0]) / 2 + bounds[0]
+    lat = 0
+    lon = 0
 
     # Select area map.
     # m = Map(
@@ -355,7 +357,6 @@ def cmr_search(msg):
 
     global jsonfile 
     # Use number. No 0 at beginning.
-    jsonfile = now.strftime("%Y%m%d%H%M%S")
     jsonfile = now.strftime("%Y%m%d%H%M%S.json")
     print(jsonfile)
 

@@ -204,8 +204,8 @@
         </div>
         <div class='px6 pt6 pb6'>
           <div class='align-center'>
-            <input id="start-date" type="text" placeholder="2022-07-01T00:00:00Z" />
-            <input id="end-date" type="text" placeholder="2022-07-02T00:00:00Z" />
+            <input id="start-date" type="text" placeholder="2022-12-01T00:00:00Z" />
+            <input id="end-date" type="text" placeholder="2022-12-06T00:00:00Z" />
           </div>
         </div>
       </section>
@@ -399,26 +399,34 @@
     document.getElementById('data-max').value = 4000
 
     var map
-    const define_map = (lat, lon) => {
+    const add_map = (lat, lon) => {
       map = L.map(
         "map",
         {
-          center: [lat, lon], // DC.
-          // center: [40.72208147817604, -73.99655178907726], // NY.
-          crs: L.CRS.EPSG3857,
+          center: [lat, lon],
+          crs: L.CRS.EPSG3857, // WebMercator hls
+          // crs: L.CRS.EPSG4326, // Geography
+          // crs: L.CRS.EPSG3395, 
+          // crs: L.CRS.Earch,
+          // crs: L.CRS.Simple,
           zoom: 8,
-          // maxZoom: 12,
-          // minZoom: 8,
+          minZoom: 0,
+          maxZoom: 12,
           zoomControl: false,
           preferCanvas: false,
         }
       );
       L.control.zoom({ position: 'topright' }).addTo(map);
     }
-    // Default center.
+    // DC mosaicjson.
     center_lat = 38.75
     center_lon = -76.25
-    define_map(center_lat, center_lon)
+
+    // CA test.
+    // center_lat = 36.752818004021755
+    // center_lon = -118.83723281779716
+
+    add_map(center_lat, center_lon)
     layerGroup.addTo(map);
 
     const add_basemap = () => {
@@ -426,8 +434,8 @@
         "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
           "detectRetina": false,
-          "maxNativeZoom": 18,
-          "maxZoom": 18,
+          "maxNativeZoom": 12,
+          "maxZoom": 12,
           "minZoom": 0,
           "noWrap": false,
           "opacity": 1,
@@ -454,25 +462,48 @@
 
     function add_img(name_file, red_v, green_v, blue_v, min_v, max_v) {
 
-      url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+      url = ""
 
-      // Use post process is black color.
-      // url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&post_process=swir"
+      if (name_file == "defaultdata.json") {
 
-      // Test server.
-      // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/4c640d25fd8dd78aef47721a71ee8e96/WGS1984Quad/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
+        // raster:
+        eoid = "e6de2e2374920c3b2d27c56f62457710" // global 4 3 2
+        url = "http://0.0.0.0:8082/mosaic/tiles/" + eoid + "/WebMercatorQuad/{z}/{x}/{y}@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000"
+        // http://0.0.0.0:8082/mosaic/tiles/176e105f191e3f164911272698781ea3/WebMercatorQuad/8/73/97@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000
 
-      console.log("Add image: " + url)
+        // pgstac:
+        // eoid = "a3c2905e71a82aea4b01e1e81c4473ad"
+        // http://0.0.0.0:8081/mosaic/tiles/176e105f191e3f164911272698781ea3/WebMercatorQuad/8/73/97@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000
+        // url = "http://0.0.0.0:8081/mosaic/tiles/" + eoid + "/WebMercatorQuad/{z}/{x}/{y}@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000"
+
+        // firms: CA
+        // tms = "WGS1984Quad"
+        // tms = "WebMercatorQuad"
+        // tms = "WorldCRS84Quad"
+        // tms = "WorldMercatorWGS84Quad"
+        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/4c640d25fd8dd78aef47721a71ee8e96/WGS1984Quad/9/561/132@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
+        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/4c640d25fd8dd78aef47721a71ee8e96/WGS1984Quad/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
+        // testid = "fd31aacecf9f61d07590746252766698"
+        // img in different location.
+        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/c92d702e81cd18e6280fd47750e9013d/WGS1984Quad/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
+        // Images at north UK
+        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/" + testid + "/" + tms + "/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
+      }
+      else {
+        // mosaicjson.
+        // http://0.0.0.0:8000/mosaicjson/tiles/WebMercatorQuad/8/73/97@1x?url=http%3A%2F%2Fvizex%3A8080%2Fjsondata/20230109173056.json&assets=B11&assets=B08&assets=B05&rescale=0%2C4000
+        url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+      }
+
+      console.log("Add tile: " + url)
 
       layer_img = L.tileLayer(
         url,
         {
           "attribution": "HLS",
-          "detectRetina": false,
           "maxNativeZoom": 12,
           "maxZoom": 12,
           "minZoom": 8,
-          // "minZoom": 9, // Test server.
           "noWrap": false,
           "opacity": 1,
           "subdomains": "abc",
@@ -483,8 +514,8 @@
       layerGroup.addLayer(layer_img);
     }
 
-    // Default image when start if it has data in data server.
-    // add_img("defaultdata.json", red_v, green_v, blue_v, min_v, max_v)
+    // Default tile.
+    add_img("defaultdata.json", red_v, green_v, blue_v, min_v, max_v)
 
     // Draw polygon.
     // var draw_area = new MapboxDraw({
@@ -632,7 +663,7 @@
       // south = 25
       // north = 50
 
-      // dc 2 good image.
+      // DC 2 good image.
       // west_v = -77
       // south_v = 38.5
       // east_v = -76.5
@@ -642,14 +673,13 @@
       let enddate_v = document.getElementById('end-date').value
 
       if (startdate_v == "") {
-        // dc good image.
+        // DC image.
         // startdate_v = "2022-10-01T00:00:00Z"
-        // Global image.
-        startdate_v = "2022-07-01T00:00:00Z"
-      }
-      if (enddate_v == "") {
         // enddate_v = "2022-11-04T00:00:00Z"
-        enddate_v = "2022-07-02T00:00:00Z"
+
+        // Global image.
+        startdate_v = "2022-12-01T00:00:00Z"
+        enddate_v = "2022-12-06T00:00:00Z"
       }
 
       const collection_v = document.getElementById('layer-selector').value
@@ -731,24 +761,12 @@
 
             center_lat = (south_v + north_v) / 2
             center_lon = (west_v + east_v) / 2
-            // define_map(center_lat, center_lon)
+            // add_map(center_lat, center_lon)
             add_basemap()
+
             add_img(name_file, red_v, green_v, blue_v, min_v, max_v)
 
-            // Bound,
-            fetch("http://" + OutsideIp + ":8080/jsonbound")
-              .then(response => {
-                if (response.ok)
-                  return response.json()
-                throw new Error('Server no response.')
-              })
-              .then(data => {
-                console.log("Add bounds.")
-                area_add(data)
-              })
-              .catch(error => {
-                console.warn(error)
-              })
+            // add_bound()
           }
         })
         .catch(error => {
@@ -777,7 +795,22 @@
       nextSection.classList.toggle('active')
     }
 
-    // Bound.
+    function add_bound() {
+      fetch("http://" + OutsideIp + ":8080/jsonbound")
+        .then(response => {
+          if (response.ok)
+            return response.json()
+          throw new Error('Server no response.')
+        })
+        .then(data => {
+          console.log("Add bounds.")
+          area_add(data)
+        })
+        .catch(error => {
+          console.warn(error)
+        })
+    }
+
     function area_styler(feature) {
       switch (feature.properties.path) {
         default:
