@@ -161,19 +161,8 @@
   <div class="folium-map" id="map"></div>
 
   <div id='menu' class='flex-child w250 w250-ml absolute bg-white off'>
-    <!-- 
-    <ul id='toolbar' class='grid'>
-      <li id='query' class="col col--6 active" title="query" onclick="switchPane(this)">
-        Search
-      </li>
-      <li id='result' class="col col--6" title="result" onclick="switchPane(this)">
-        Result
-      </li>
-    </ul> -->
 
     <div id='menu-content' class='relative '>
-
-      <!-- <section id='query-section' class='px12 pt12 pb6 active'> -->
 
       <div class='align-center mb12'>
         <button id='btn-query' class='btn center' title='Search'>Search</button>
@@ -264,12 +253,6 @@
         </div>
       </section>
 
-      <!-- </section> -->
-
-      <!-- <section id='result-section'>
-        <div id="results-items" class='px12 pt12 pb6'></div>
-      </section> -->
-
     </div>
   </div>
 
@@ -339,22 +322,6 @@
       layerList.appendChild(opt)
     })
 
-    // Display search result.
-    // let searchResult;
-    // const query = (body) => {
-    //   const items_el = document.getElementById('results-items')
-    //   items_el.innerHTML +=
-    //     `<div class="list-element" onclick="zoomtofeature('id')">` +
-    //     '<div class="col">' +
-    //     '<div class="item-descr">' +
-    //     `<span class="collection">Collection HLS<br></span>` +
-    //     `<span class="id">Data number: 4200<br></span>` +
-    //     `<span class="date">2022-07-01<br></span>` +
-    //     '</div>' +
-    //     '</div>' +
-    //     '</div>'
-    // }
-
     document.getElementById('menu').classList.toggle('off') // Hide menu.
 
     img.band_name = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B10', 'B11', 'B12']
@@ -422,10 +389,6 @@
     center_lat = 38.75
     center_lon = -76.25
 
-    // CA test.
-    // center_lat = 36.752818004021755
-    // center_lon = -118.83723281779716
-
     add_map(center_lat, center_lon)
     layerGroup.addTo(map);
 
@@ -464,144 +427,59 @@
 
       url = ""
 
-      if (name_file == "defaultdata.json") {
-
-        // raster:
-        eoid = "e6de2e2374920c3b2d27c56f62457710" // global 4 3 2
-        url = "http://0.0.0.0:8082/mosaic/tiles/" + eoid + "/WebMercatorQuad/{z}/{x}/{y}@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000"
-        // http://0.0.0.0:8082/mosaic/tiles/176e105f191e3f164911272698781ea3/WebMercatorQuad/8/73/97@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000
-
-        // pgstac:
-        // eoid = "a3c2905e71a82aea4b01e1e81c4473ad"
-        // http://0.0.0.0:8081/mosaic/tiles/176e105f191e3f164911272698781ea3/WebMercatorQuad/8/73/97@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000
-        // url = "http://0.0.0.0:8081/mosaic/tiles/" + eoid + "/WebMercatorQuad/{z}/{x}/{y}@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000"
-
-        // firms: CA
-        // tms = "WGS1984Quad"
-        // tms = "WebMercatorQuad"
-        // tms = "WorldCRS84Quad"
-        // tms = "WorldMercatorWGS84Quad"
-        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/4c640d25fd8dd78aef47721a71ee8e96/WGS1984Quad/9/561/132@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
-        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/4c640d25fd8dd78aef47721a71ee8e96/WGS1984Quad/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
-        // testid = "fd31aacecf9f61d07590746252766698"
-        // img in different location.
-        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/c92d702e81cd18e6280fd47750e9013d/WGS1984Quad/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
-        // Images at north UK
-        // url = "https://d1nzvsko7rbono.cloudfront.net/mosaic/tiles/" + testid + "/" + tms + "/{z}/{x}/{y}@1x?assets=B07&assets=B05&assets=B04&post_process=swir"
+      if (name_file == "veda") {
+        // global data and bands 4 3 2
+        // 2022-12-01T00:00:00Z/2022-12-06T00:00:00Z
+        // registerid = "e6de2e2374920c3b2d27c56f62457710"
+        fetch("http://" + OutsideIp + ":8080/registerid")
+          .then(response => {
+            if (response.ok)
+              return response.json()
+            throw new Error('Server no response.')
+          })
+          .then(data => {
+            registerid = data
+            // console.log("Get register id: " + registerid)
+            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000"
+            new_layer()
+          })
+          .catch(error => {
+            console.warn(error)
+          })
       }
-      else {
+      else { 
         // mosaicjson.
-        // http://0.0.0.0:8000/mosaicjson/tiles/WebMercatorQuad/8/73/97@1x?url=http%3A%2F%2Fvizex%3A8080%2Fjsondata/20230109173056.json&assets=B11&assets=B08&assets=B05&rescale=0%2C4000
         url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+        new_layer()
       }
 
-      console.log("Add tile: " + url)
+      function new_layer() {
+        console.log("Add tile: " + url)
 
-      layer_img = L.tileLayer(
-        url,
-        {
-          "attribution": "HLS",
-          "maxNativeZoom": 12,
-          "maxZoom": 12,
-          "minZoom": 8,
-          "noWrap": false,
-          "opacity": 1,
-          "subdomains": "abc",
-          "tms": false
-        }
-      ).addTo(map);
+        layer_img = L.tileLayer(
+          url,
+          {
+            "attribution": "HLS",
+            "maxNativeZoom": 12,
+            "maxZoom": 12,
+            "minZoom": 8,
+            "noWrap": false,
+            "opacity": 1,
+            "subdomains": "abc",
+            "tms": false
+          }
+        ).addTo(map);
 
-      layerGroup.addLayer(layer_img);
+        layerGroup.addLayer(layer_img);
+      }
     }
 
     // Default tile.
-    add_img("defaultdata.json", red_v, green_v, blue_v, min_v, max_v)
-
-    // Draw polygon.
-    // var draw_area = new MapboxDraw({
-    //   displayControlsDefault: false,
-    // });
-
-    // let NewPolygon;
-
-    // function addLatLngToPolygon(clickEventData) {
-    //   NewPolygon.addLatLng(clickEventData.latlng);
-    // }
-
-    // function simplifyLatLngs(latlngs) {
-    //   var x = [];
-    //   for (var i = 0; i < latlngs.length; i++) {
-    //     console.log(latlngs[i].lat)
-    //     x.push([latlngs[i].lat, latlngs[i].lng]);
-    //   }
-    //   return x;
-    // }
+    add_img("veda", red_v, green_v, blue_v, min_v, max_v)
 
     // Draw.
     document.getElementById('bbox').addEventListener('click', () => {
-      //draw_area.deleteAll();
-      //if (draw_area.getMode() !== 'simple_select') draw_area.changeMode('simple_select');
-      //draw_area.changeMode('draw_polygon')
-
-      // Draw.
-      // NewPolygon = new L.polygon([]).addTo(map);
-      // map.on('click', addLatLngToPolygon);
-
-      // const options = {
-      //   draw: {
-      //     polygon: {
-      //       allowIntersection: false,
-      //       allowOverlap: false,
-      //       showArea: true,
-      //       shapeOptions: {
-      //         color: '#3375CC',
-      //         weight: 5
-      //       }
-      //     }
-      //   },
-      //   edit: {
-      //     poly: {
-      //       allowIntersection: false,
-      //       allowOverlap: false
-      //     }
-      //   }
-      // };
-      // var polygonEditor = new WrldIndoorPolygonEditor(map, options);
-      // var indoorControl = new WrldIndoorControl("widget-container", map);
-      // var counter = 0;
-      // map.on(L.Draw.Event.CREATED, function (e) {
-      //   var layer = e.layer;
-      //   if (layer instanceof Wrld.Polygon) {
-      //     layer.setUserData(counter++);
-      //     console.log("Created Polygon with userdata: " + layer.getUserData());
-      //     layer.on("click", function (e) {
-      //       console.log("Polygon data: " + e.target.getUserData() + " Points: " + e.target.getLatLngs());
-      //     });
-      //   }
-      // });
-      // map.on(L.Draw.Event.DELETED, function (e) {
-      //   var layers = e.layers;
-      //   layers.eachLayer(layer => {
-      //     if (layer instanceof Wrld.Polygon) {
-      //       console.log("Deleted Polygon with userdata: " + layer.getUserData());
-      //     }
-      //   })
-      // });
-      // map.on(L.Draw.Event.EDITSTART, function (e) {
-      //   setIndoorControlVisbility(indoorControl, false);
-      // });
-      // map.on(L.Draw.Event.EDITSTOP, function (e) {
-      //   setIndoorControlVisbility(indoorControl, true);
-      // });
-      // map.on(L.Draw.Event.DRAWSTART, function (e) {
-      //   setIndoorControlVisbility(indoorControl, false);
-      // });
-      // map.on(L.Draw.Event.DRAWSTOP, function (e) {
-      //   setIndoorControlVisbility(indoorControl, true);
-      // });
-
     })
-    // map.addControl(draw_area);
 
     // Change band and scale.
     document.getElementById('display_btn').addEventListener('click', () => {
@@ -626,25 +504,6 @@
       body = { limit: scope.limit }
       filter = { op: 'and', args: [] }
 
-      // Get polygon.
-      // const draws = draw_area.getAll()
-      // if (draws.features.length !== 0)
-      //   filter.args.push({ "op": "s_intersects", "args": [{ "property": "geometry" }, draws.features[0].geometry] })
-      // draw_area.deleteAll();
-      // console.log("area: " + draws.features[0].geometry.coordinates[0])
-
-      // Get xy.
-      // let xyArray = simplifyLatLngs(NewPolygon.getLatLngs());
-      // console.log("Polygon xy: " + xyArray);
-      // Stop.
-      // map.off('click', addLatLngToPolygon);
-
-      // Map extent.
-      // let west_v  = map.getBounds()._southWest.lng
-      // let east_v  = map.getBounds()._southWest.lat
-      // let south_v = map.getBounds()._northEast.lng
-      // let north_v = map.getBounds()._northEast.lat
-
       // STAC API World lon can be 180, lat max is 89.9
       // west_v = -180
       // east_v = 180
@@ -663,20 +522,10 @@
       // south = 25
       // north = 50
 
-      // DC 2 good image.
-      // west_v = -77
-      // south_v = 38.5
-      // east_v = -76.5
-      // north_v = 39
-
       let startdate_v = document.getElementById('start-date').value
       let enddate_v = document.getElementById('end-date').value
 
       if (startdate_v == "") {
-        // DC image.
-        // startdate_v = "2022-10-01T00:00:00Z"
-        // enddate_v = "2022-11-04T00:00:00Z"
-
         // Global image.
         startdate_v = "2022-12-01T00:00:00Z"
         enddate_v = "2022-12-06T00:00:00Z"
@@ -727,13 +576,6 @@
             console.log("No data: ")
           }
           else {
-            // sleep(10000);
-
-            // var msgArray = JSON.parse(msg)
-            // center_lat = msgArray[0]
-            // center_lon = msgArray[1]
-            // name_file = msgArray[2]
-
             center_lat = msg.lat
             center_lon = msg.lon
             name_file = msg.file
@@ -773,13 +615,7 @@
           console.warn(error)
         })
 
-      // Switch to search, result.
       scope.query = body
-      // query(body)
-      // document.getElementById('query').classList.toggle('active')
-      // document.getElementById('result').classList.toggle('active')
-      // document.getElementById(`query-section`).classList.toggle('active')
-      // document.getElementById(`result-section`).classList.toggle('active')
     })
 
     const switchPane = (event) => {
