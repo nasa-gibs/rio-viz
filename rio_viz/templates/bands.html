@@ -249,7 +249,7 @@
 
       <section id='display' class='px12 pt12 pb12 active'>
         <div class='align-center mb12'>
-          <button id='display_btn' class='btn center' title='Display'>Display</button>
+          <button id='display_btn' class='btn center' title='Dynamic'>Dynamic</button>
         </div>
       </section>
 
@@ -270,7 +270,7 @@
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
     var area
-    var name_file
+    var name_file = "veda"
     var layerGroup = new L.LayerGroup();
     var center_lon, center_lat
 
@@ -428,10 +428,10 @@
       url = ""
 
       if (name_file == "veda") {
-        // global data and bands 4 3 2
+        // Global data for bands 4 3 2
         // 2022-12-01T00:00:00Z/2022-12-06T00:00:00Z
         // registerid = "e6de2e2374920c3b2d27c56f62457710"
-        fetch("http://" + OutsideIp + ":8080/registerid")
+        fetch("http://" + OutsideIp + ":8003/registerid")
           .then(response => {
             if (response.ok)
               return response.json()
@@ -440,7 +440,9 @@
           .then(data => {
             registerid = data
             // console.log("Get register id: " + registerid)
-            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?assets=B11&assets=B08&assets=B05&rescale=0%2C4000"
+            // url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" + "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" + 
+              "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
             new_layer()
           })
           .catch(error => {
@@ -449,7 +451,14 @@
       }
       else { 
         // mosaicjson.
-        url = "http://" + OutsideIp + ":8000/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + DataIp + "%3A8080%2Fjsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
+        // url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + 
+        //   DataIp + "%3A8003%2Fjsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + 
+        //   "&rescale=" + min_v + "%2C" + max_v
+
+        url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http://" + 
+          DataIp + ":8003/jsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + 
+          "&rescale=" + min_v + "," + max_v
+
         new_layer()
       }
 
@@ -475,7 +484,7 @@
     }
 
     // Default tile.
-    add_img("veda", red_v, green_v, blue_v, min_v, max_v)
+    add_img(name_file, red_v, green_v, blue_v, min_v, max_v)
 
     // Draw.
     document.getElementById('bbox').addEventListener('click', () => {
@@ -553,7 +562,7 @@
         "scale": min_v + "," + max_v
       }
       console.log("Send request: " + JSON.stringify(searchstr))
-      fetch("http://" + OutsideIp + ":8080/search",
+      fetch("http://" + OutsideIp + ":8003/search",
         {
           method: "POST",
           headers: {
@@ -632,7 +641,7 @@
     }
 
     function add_bound() {
-      fetch("http://" + OutsideIp + ":8080/jsonbound")
+      fetch("http://" + OutsideIp + ":8003/jsonbound")
         .then(response => {
           if (response.ok)
             return response.json()

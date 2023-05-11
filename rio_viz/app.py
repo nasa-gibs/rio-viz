@@ -1,5 +1,3 @@
-"""rio_viz app."""
-
 import pathlib
 import urllib.parse
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
@@ -139,9 +137,8 @@ def cmr_search(msg):
             ),
             properties={
                 "path": file,
-            }
-            # ,
-            # type={"Feature"}
+            },
+            type="Feature"
         )
 
     # CMR API.
@@ -258,7 +255,7 @@ class viz:
 
     app: FastAPI = attr.ib(default=attr.Factory(FastAPI))
 
-    port: int = attr.ib(default=8080)
+    port: int = attr.ib(default=8003)
     host: str = attr.ib(default="0.0.0.0")
     config: Dict = attr.ib(default=dict)
 

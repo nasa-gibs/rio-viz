@@ -63,7 +63,7 @@ class NodataParamType(click.ParamType):
     type=int,
     help="Overwrite maxzoom",
 )
-@click.option("--port", type=int, default=8080, help="Webserver port (default: 8080)")
+@click.option("--port", type=int, default=8003, help="Webserver port (default: 8003)")
 @click.option(
     "--host",
     type=str,
