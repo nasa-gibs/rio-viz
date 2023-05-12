@@ -440,7 +440,6 @@
           .then(data => {
             registerid = data
             // console.log("Get register id: " + registerid)
-            // url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" + "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "%2C" + max_v
             url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" + 
               "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
             new_layer()
@@ -451,10 +450,6 @@
       }
       else { 
         // mosaicjson.
-        // url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http%3A%2F%2F" + 
-        //   DataIp + "%3A8003%2Fjsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + 
-        //   "&rescale=" + min_v + "%2C" + max_v
-
         url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http://" + 
           DataIp + ":8003/jsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + 
           "&rescale=" + min_v + "," + max_v
