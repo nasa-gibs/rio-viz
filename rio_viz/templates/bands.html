@@ -4,7 +4,7 @@
 
 <head>
 
-  <title>Client</title>
+  <title>CE</title>
 
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -111,7 +111,17 @@
       display: inherit;
     }
 
-    #btn-query {
+    #clear-query {
+      position: relative;
+      top: 10px;
+    }
+
+    #partial-query {
+      position: relative;
+      top: 10px;
+    }
+
+    #cloud-query {
       position: relative;
       top: 10px;
     }
@@ -165,27 +175,18 @@
     <div id='menu-content' class='relative '>
 
       <div class='align-center mb12'>
-        <button id='btn-query' class='btn center' title='Search'>Search</button>
+        <button id='clear-query' class='btn center' title='Clear'>Clear</button>
+      </div>
+
+      <div class='align-center mb12'>
+        <button id='partial-query' class='btn center' title='Partial'>Partial</button>
+      </div>
+
+      <div class='align-center mb12'>
+        <button id='cloud-query' class='btn center' title='Cloud'>Cloud</button>
       </div>
 
       <section id='data-layers' class='px6 py6 active'>
-        <div class='txt-h5 mb6 color-black'>
-          <svg class='icon icon--l inline-block'>
-            <use xlink:href='#icon-layers' />
-          </svg>Spatial Area
-        </div>
-        <div class='align-center mb6'>
-          <button id='bbox' class='btn btn--stroke color-black round center txt-s opacity75-on-hover' title='bbox'>Zoom
-            Map
-            <svg class='icon w18 h18 inline-block align-middle'>
-              <use xlink:href='#icon-polygon' />
-            </svg>
-          </button>
-        </div>
-      </section>
-
-      <section id='data-layers' class='px6 py6 active'>
-
         <div class='txt-h5 mb6 color-black'>
           <svg class='icon icon--l inline-block'>
             <use xlink:href='#icon-layers' />
@@ -270,7 +271,7 @@
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
     var area
-    var name_file = "veda"
+    var file_name = "veda"
     var layerGroup = new L.LayerGroup();
     var center_lon, center_lat
 
@@ -302,10 +303,6 @@
     enddate.addEventListener('pickadate:change', () => {
       enddate.value = endpicker.getValue('YYYY-MM-DD[T]HH:mm:ss[Z]')
     })
-
-    const zoomtofeature = (id) => {
-      const bbox = scope.features.filter(e => { return e.id === id })[0].bbox
-    }
 
     const layerList = document.getElementById('layer-selector')
     const layers = [
@@ -423,11 +420,11 @@
     min_v = document.getElementById('data-min').value
     max_v = document.getElementById('data-max').value
 
-    function add_img(name_file, red_v, green_v, blue_v, min_v, max_v) {
+    function add_img(file_name, red_v, green_v, blue_v, min_v, max_v) {
 
       url = ""
 
-      if (name_file == "veda") {
+      if (file_name == "veda") {
         // Global data for bands 4 3 2
         // 2022-12-01T00:00:00Z/2022-12-06T00:00:00Z
         // registerid = "e6de2e2374920c3b2d27c56f62457710"
@@ -442,7 +439,11 @@
             // console.log("Get register id: " + registerid)
             url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" + 
               "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
-            new_layer()
+
+            if (url != "") {
+              new_layer()
+            }
+
           })
           .catch(error => {
             console.warn(error)
@@ -451,10 +452,12 @@
       else { 
         // mosaicjson.
         url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http://" + 
-          DataIp + ":8003/jsondata/" + name_file + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + 
+          DataIp + ":8003/jsondata/" + file_name + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + 
           "&rescale=" + min_v + "," + max_v
 
-        new_layer()
+        if (url != "") {
+            new_layer()
+        }
       }
 
       function new_layer() {
@@ -478,12 +481,8 @@
       }
     }
 
-    // Default tile.
-    add_img(name_file, red_v, green_v, blue_v, min_v, max_v)
-
-    // Draw.
-    document.getElementById('bbox').addEventListener('click', () => {
-    })
+    // Default is Partial.
+    add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
 
     // Change band and scale.
     document.getElementById('display_btn').addEventListener('click', () => {
@@ -499,14 +498,59 @@
         map.removeLayer(layer_img)
       }
 
-      add_img(name_file, red_v, green_v, blue_v, min_v, max_v)
-
+      add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
     })
 
-    // Search.
-    document.getElementById('btn-query').addEventListener('click', () => {
+    // Clear.
+    document.getElementById('clear-query').addEventListener('click', () => {
+       
+      // Remove basemap, bound, img.
+      map.eachLayer(function (layer) {
+        map.removeLayer(layer);
+      });
+      add_basemap()
+
+      file_name = "veda"
+      add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
+    })
+
+    // Partial.
+    document.getElementById('partial-query').addEventListener('click', () => {
+
+      if (map.hasLayer(layer_img)) {
+        layerGroup.clearLayers();
+        layerGroup.removeLayer(layer_img)
+        map.removeLayer(layer_img)
+      }
+
+      file_name = "veda"
+      add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
+    })
+
+    // Cloud.
+    document.getElementById('cloud-query').addEventListener('click', () => {
       body = { limit: scope.limit }
       filter = { op: 'and', args: [] }
+
+      // if (map.hasLayer(layer_img)) {
+      //   layerGroup.clearLayers();
+      //   layerGroup.removeLayer(layer_img)
+      //   map.removeLayer(layer_img)
+      // }
+      // if (map.hasLayer(area)) {
+      //   layerGroup.clearLayers();
+      //   layerGroup.removeLayer(area)
+      //   map.removeLayer(area)
+      // }
+      // map.removeLayer(L.tileLayer)
+      // map.removeLayer(L.geoJson);
+      // L.geoJSON().clearLayers();
+
+      // Remove basemap, bound, img.
+      map.eachLayer(function (layer) {
+        map.removeLayer(layer);
+      });
+      add_basemap()
 
       // STAC API World lon can be 180, lat max is 89.9
       // west_v = -180
@@ -543,7 +587,7 @@
       min_v = document.getElementById('data-min').value
       max_v = document.getElementById('data-max').value
 
-      // Search.
+      // Cloud.
       searchstr = {
         "west": west_v,
         "east": east_v,
@@ -582,35 +626,15 @@
           else {
             center_lat = msg.lat
             center_lon = msg.lon
-            name_file = msg.file
+            file_name = msg.file
 
-            // console.log(center_lat + "," + center_lon + "," + name_file)
-
-            // if (map.hasLayer(layer_img)) {
-            //   layerGroup.clearLayers();
-            //   layerGroup.removeLayer(layer_img)
-            //   map.removeLayer(layer_img)
-            // }
-            // if (map.hasLayer(area)) {
-            //   layerGroup.clearLayers();
-            //   layerGroup.removeLayer(area)
-            //   map.removeLayer(area)
-            // }
-            // map.removeLayer(L.tileLayer)
-            // map.removeLayer(L.geoJson);
-            // L.geoJSON().clearLayers();
-
-            // Remove basemap, bound, img.
-            map.eachLayer(function (layer) {
-              map.removeLayer(layer);
-            });
+            // console.log(center_lat + "," + center_lon + "," + file_name)
 
             center_lat = (south_v + north_v) / 2
             center_lon = (west_v + east_v) / 2
             // add_map(center_lat, center_lon)
-            add_basemap()
 
-            add_img(name_file, red_v, green_v, blue_v, min_v, max_v)
+            add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
 
             // add_bound()
           }
