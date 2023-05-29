@@ -86,10 +86,6 @@ def cmr_search(msg):
     north_v = msg.north
     date_v = msg.date
     collection_v = msg.collection
-    red_v = msg.red
-    green_v = msg.green
-    blue_v = msg.blue
-    scale_v = msg.scale
 
     # Filters.
     cloudcover = 25
@@ -909,12 +905,20 @@ class viz:
             tags=["API"],
         )
         def registerid():
-            listmsg = os.popen('cat registerid').read()
-            # print(listmsg)
-            listjson = json.loads(listmsg)
-            id = listjson["searches"][0]["search"]["hash"]
-            # print(id)
-            return id
+            # listmsg = os.popen('cat registerid').read()
+            # # print(listmsg)
+            # listjson = json.loads(listmsg)
+            # id = listjson["searches"][0]["search"]["hash"]
+            # # print(id)
+            with open('registerid.json') as data_file:   
+                data = json.load(data_file)
+
+            ids = []
+            for search in data['searches']:
+                ids.append(search['search']['hash'])
+            id_str = ','.join(str(x) for x in ids)
+            # print("Registerid: " + id_str)
+            return id_str
         
 
     @property

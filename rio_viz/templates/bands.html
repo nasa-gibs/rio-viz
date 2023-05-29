@@ -194,8 +194,16 @@
         </div>
         <div class='px6 pt6 pb6'>
           <div class='align-center'>
+            <!-- Normal -->
             <input id="start-date" type="text" placeholder="2022-12-01T00:00:00Z" />
             <input id="end-date" type="text" placeholder="2022-12-06T00:00:00Z" />
+            
+            <!-- Test -->
+            <!-- 
+            <input id="start-date" type="text" placeholder="2023-04-01T00:00:00Z" />
+            <input id="end-date" type="text" placeholder="2023-04-06T00:00:00Z" /> 
+            -->
+
           </div>
         </div>
       </section>
@@ -271,7 +279,7 @@
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
     var area
-    var file_name = "veda"
+    var file_name = ""
     var layerGroup = new L.LayerGroup();
     var center_lon, center_lat
 
@@ -373,19 +381,18 @@
           // crs: L.CRS.EPSG3395, 
           // crs: L.CRS.Earch,
           // crs: L.CRS.Simple,
-          zoom: 8,
+          zoom: 10,
           minZoom: 0,
-          maxZoom: 12,
+          maxZoom: 18,
           zoomControl: false,
           preferCanvas: false,
         }
       );
       L.control.zoom({ position: 'topright' }).addTo(map);
     }
-    // DC mosaicjson.
-    center_lat = 38.75
-    center_lon = -76.25
-
+    // DC center.
+    center_lat = 38.89886481913306
+    center_lon = -77.03761689707353
     add_map(center_lat, center_lon)
     layerGroup.addTo(map);
 
@@ -395,7 +402,7 @@
         {
           "detectRetina": false,
           "maxNativeZoom": 12,
-          "maxZoom": 12,
+          "maxZoom": 18,
           "minZoom": 0,
           "noWrap": false,
           "opacity": 1,
@@ -424,10 +431,7 @@
 
       url = ""
 
-      if (file_name == "veda") {
-        // Global data for bands 4 3 2
-        // 2022-12-01T00:00:00Z/2022-12-06T00:00:00Z
-        // registerid = "e6de2e2374920c3b2d27c56f62457710"
+      if (file_name == "clear") {
         fetch("http://" + OutsideIp + ":8003/registerid")
           .then(response => {
             if (response.ok)
@@ -435,9 +439,12 @@
             throw new Error('Server no response.')
           })
           .then(data => {
-            registerid = data
-            // console.log("Get register id: " + registerid)
-            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" + 
+            id_str = data
+            ids = id_str.split(',')
+            registerid = ids[0]
+            console.log("Registerid: " + registerid)
+
+            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
               "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
 
             if (url != "") {
@@ -449,14 +456,38 @@
             console.warn(error)
           })
       }
-      else { 
-        // mosaicjson.
-        url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http://" + 
-          DataIp + ":8003/jsondata/" + file_name + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + 
+      else if (file_name == "partial") {
+        fetch("http://" + OutsideIp + ":8003/registerid")
+          .then(response => {
+            if (response.ok)
+              return response.json()
+            throw new Error('Server no response.')
+          })
+          .then(data => {
+            id_str = data
+            ids = id_str.split(',')
+            registerid = ids[1]
+            console.log("Registerid: " + registerid)
+
+            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+              "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+
+            if (url != "") {
+              new_layer()
+            }
+
+          })
+          .catch(error => {
+            console.warn(error)
+          })
+      }
+      else { // cloud.
+        url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http://" +
+          DataIp + ":8003/jsondata/" + file_name + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v +
           "&rescale=" + min_v + "," + max_v
 
         if (url != "") {
-            new_layer()
+          new_layer()
         }
       }
 
@@ -468,8 +499,8 @@
           {
             "attribution": "HLS",
             "maxNativeZoom": 12,
-            "maxZoom": 12,
-            "minZoom": 8,
+            "maxZoom": 18,
+            "minZoom": 0,
             "noWrap": false,
             "opacity": 1,
             "subdomains": "abc",
@@ -481,7 +512,8 @@
       }
     }
 
-    // Default is Partial.
+    // Default is clear.
+    file_name = "clear"
     add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
 
     // Change band and scale.
@@ -497,20 +529,20 @@
         layerGroup.removeLayer(layer_img)
         map.removeLayer(layer_img)
       }
-
+      // Dynamic name from latest display.
       add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
     })
 
     // Clear.
     document.getElementById('clear-query').addEventListener('click', () => {
-       
+
       // Remove basemap, bound, img.
       map.eachLayer(function (layer) {
         map.removeLayer(layer);
       });
       add_basemap()
 
-      file_name = "veda"
+      file_name = "clear"
       add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
     })
 
@@ -523,7 +555,7 @@
         map.removeLayer(layer_img)
       }
 
-      file_name = "veda"
+      file_name = "partial"
       add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
     })
 
@@ -552,29 +584,38 @@
       });
       add_basemap()
 
-      // STAC API World lon can be 180, lat max is 89.9
+      // STAC API World lon can be 180, lat max is 89.9.
       // west_v = -180
       // east_v = 180
       // south_v = -89.9
       // north_v = 89.9
 
-      // CMR API default.
+      // CMR API default. Currently use CMR API.
       west_v = -180
       east_v = 180
       south_v = -90
       north_v = 90
 
       // US
-      // west  = -125
-      // east  = -66
-      // south = 25
-      // north = 50
+      // west_v  = -125
+      // east_v  = -66
+      // south_v = 25
+      // north_v = 50
+
+      // DC.
+      // west_v = -80
+      // east_v = -70
+      // south_v = 36
+      // north_v = 40
 
       let startdate_v = document.getElementById('start-date').value
       let enddate_v = document.getElementById('end-date').value
 
       if (startdate_v == "") {
-        // Global image.
+        // Normal.
+        // startdate_v = "2023-04-01T00:00:00Z"
+        // enddate_v = "2023-04-06T00:00:00Z"
+        // Test.
         startdate_v = "2022-12-01T00:00:00Z"
         enddate_v = "2022-12-06T00:00:00Z"
       }
@@ -634,6 +675,7 @@
             center_lon = (west_v + east_v) / 2
             // add_map(center_lat, center_lon)
 
+            // File name from search.
             add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
 
             // add_bound()
