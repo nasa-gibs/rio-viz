@@ -111,12 +111,12 @@
       display: inherit;
     }
 
-    #clear-query {
+    #local-query {
       position: relative;
       top: 10px;
     }
 
-    #partial-query {
+    #hybrid-query {
       position: relative;
       top: 10px;
     }
@@ -175,11 +175,11 @@
     <div id='menu-content' class='relative '>
 
       <div class='align-center mb12'>
-        <button id='clear-query' class='btn center' title='Clear'>Clear</button>
+        <button id='local-query' class='btn center' title='Local'>Local</button>
       </div>
 
       <div class='align-center mb12'>
-        <button id='partial-query' class='btn center' title='Partial'>Partial</button>
+        <button id='hybrid-query' class='btn center' title='Hybrid'>Hybrid</button>
       </div>
 
       <div class='align-center mb12'>
@@ -431,7 +431,7 @@
 
       url = ""
 
-      if (file_name == "clear") {
+      if (file_name == "local") {
         fetch("http://" + OutsideIp + ":8003/registerid")
           .then(response => {
             if (response.ok)
@@ -456,7 +456,7 @@
             console.warn(error)
           })
       }
-      else if (file_name == "partial") {
+      else if (file_name == "hybrid") {
         fetch("http://" + OutsideIp + ":8003/registerid")
           .then(response => {
             if (response.ok)
@@ -512,8 +512,8 @@
       }
     }
 
-    // Default is clear.
-    file_name = "clear"
+    // Default is local.
+    file_name = "local"
     add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
 
     // Change band and scale.
@@ -533,8 +533,8 @@
       add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
     })
 
-    // Clear.
-    document.getElementById('clear-query').addEventListener('click', () => {
+    // Local.
+    document.getElementById('local-query').addEventListener('click', () => {
 
       // Remove basemap, bound, img.
       map.eachLayer(function (layer) {
@@ -542,12 +542,12 @@
       });
       add_basemap()
 
-      file_name = "clear"
+      file_name = "local"
       add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
     })
 
-    // Partial.
-    document.getElementById('partial-query').addEventListener('click', () => {
+    // Hybrid.
+    document.getElementById('hybrid-query').addEventListener('click', () => {
 
       if (map.hasLayer(layer_img)) {
         layerGroup.clearLayers();
@@ -555,7 +555,7 @@
         map.removeLayer(layer_img)
       }
 
-      file_name = "partial"
+      file_name = "hybrid"
       add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
     })
 
