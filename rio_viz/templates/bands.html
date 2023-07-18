@@ -28,6 +28,8 @@
   <script src="{{ url_for('static', path='/js/d3.v4.js') }}"></script>
   <script src='https://unpkg.com/pickadate@5.0.0-alpha.3/builds/index.js'></script>
 
+  <script src="{{ url_for('static', path='env.js') }}"></script>
+  
   <style>
     html,
     body {
@@ -111,21 +113,6 @@
       display: inherit;
     }
 
-    #local-query {
-      position: relative;
-      top: 10px;
-    }
-
-    #hybrid-query {
-      position: relative;
-      top: 10px;
-    }
-
-    #cloud-query {
-      position: relative;
-      top: 10px;
-    }
-
     #results-items {
       text-align: left;
       color: #393939;
@@ -173,18 +160,6 @@
   <div id='menu' class='flex-child w250 w250-ml absolute bg-white off'>
 
     <div id='menu-content' class='relative '>
-
-      <div class='align-center mb12'>
-        <button id='local-query' class='btn center' title='Local'>Local</button>
-      </div>
-
-      <div class='align-center mb12'>
-        <button id='hybrid-query' class='btn center' title='Hybrid'>Hybrid</button>
-      </div>
-
-      <div class='align-center mb12'>
-        <button id='cloud-query' class='btn center' title='Cloud'>Cloud</button>
-      </div>
 
       <section id='data-layers' class='px6 py6 active'>
         <div class='txt-h5 mb6 color-black'>
@@ -258,7 +233,7 @@
 
       <section id='display' class='px12 pt12 pb12 active'>
         <div class='align-center mb12'>
-          <button id='display_btn' class='btn center' title='Dynamic'>Dynamic</button>
+          <button id='dynamic_btn' class='btn center' title='Dynamic'>Dynamic</button>
         </div>
       </section>
 
@@ -267,14 +242,14 @@
 
   <script>
 
-    // Compose define this for outside of container Tititler.
-    OutsideIp = "0.0.0.0"
+    // Outside containers use 0.0.0.0
+    ClientIp = "0.0.0.0"
 
-    // Outside container use public ip or 0.0.0.0
-    // DataIp = "0.0.0.0"
+    // Inside containers use name as ip.
+    // ClientIp = "ddvclient"
 
-    // Inside container use name for Vizex.
-    DataIp = "vizex"
+    ServerIp = env.ServerIp
+    console.log("ServerIp: " + ServerIp)
 
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
@@ -427,69 +402,33 @@
     min_v = document.getElementById('data-min').value
     max_v = document.getElementById('data-max').value
 
-    function add_img(file_name, red_v, green_v, blue_v, min_v, max_v) {
+    function add_img(red_v, green_v, blue_v, min_v, max_v) {
 
       url = ""
 
-      if (file_name == "local") {
-        fetch("http://" + OutsideIp + ":8003/registerid")
-          .then(response => {
-            if (response.ok)
-              return response.json()
-            throw new Error('Server no response.')
-          })
-          .then(data => {
-            id_str = data
-            ids = id_str.split(',')
-            registerid = ids[0]
-            console.log("Registerid: " + registerid)
+      fetch("http://" + ClientIp + ":8003/registerid")
+        .then(response => {
+          if (response.ok)
+            return response.json()
+          throw new Error('Server no response.')
+        })
+        .then(data => {
+          id_str = data
+          ids = id_str.split(',')
+          registerid = ids[1]
+          console.log("Registerid: " + registerid)
 
-            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
-              "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+          url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+            "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
 
-            if (url != "") {
-              new_layer()
-            }
+          if (url != "") {
+            new_layer()
+          }
 
-          })
-          .catch(error => {
-            console.warn(error)
-          })
-      }
-      else if (file_name == "hybrid") {
-        fetch("http://" + OutsideIp + ":8003/registerid")
-          .then(response => {
-            if (response.ok)
-              return response.json()
-            throw new Error('Server no response.')
-          })
-          .then(data => {
-            id_str = data
-            ids = id_str.split(',')
-            registerid = ids[1]
-            console.log("Registerid: " + registerid)
-
-            url = "http://0.0.0.0:8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
-              "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
-
-            if (url != "") {
-              new_layer()
-            }
-
-          })
-          .catch(error => {
-            console.warn(error)
-          })
-      }
-      else { // cloud.
-        url = "http://" + OutsideIp + ":8001/mosaicjson/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=http://" +
-          DataIp + ":8003/jsondata/" + file_name + "&assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v +
-          "&rescale=" + min_v + "," + max_v
-
-        if (url != "") {
-          new_layer()
-        }
-      }
+        })
+        .catch(error => {
+          console.warn(error)
+        })
 
       function new_layer() {
         console.log("Add tile: " + url)
@@ -512,12 +451,11 @@
       }
     }
 
-    // Default is local.
-    file_name = "local"
-    add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
+    // Default start.
+    add_img(red_v, green_v, blue_v, min_v, max_v)
 
     // Change band and scale.
-    document.getElementById('display_btn').addEventListener('click', () => {
+    document.getElementById('dynamic_btn').addEventListener('click', () => {
       red_v = document.getElementById('r-selector').value
       green_v = document.getElementById('g-selector').value
       blue_v = document.getElementById('b-selector').value
@@ -529,163 +467,8 @@
         layerGroup.removeLayer(layer_img)
         map.removeLayer(layer_img)
       }
-      // Dynamic name from latest display.
-      add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
-    })
 
-    // Local.
-    document.getElementById('local-query').addEventListener('click', () => {
-
-      // Remove basemap, bound, img.
-      map.eachLayer(function (layer) {
-        map.removeLayer(layer);
-      });
-      add_basemap()
-
-      file_name = "local"
-      add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
-    })
-
-    // Hybrid.
-    document.getElementById('hybrid-query').addEventListener('click', () => {
-
-      if (map.hasLayer(layer_img)) {
-        layerGroup.clearLayers();
-        layerGroup.removeLayer(layer_img)
-        map.removeLayer(layer_img)
-      }
-
-      file_name = "hybrid"
-      add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
-    })
-
-    // Cloud.
-    document.getElementById('cloud-query').addEventListener('click', () => {
-      body = { limit: scope.limit }
-      filter = { op: 'and', args: [] }
-
-      // if (map.hasLayer(layer_img)) {
-      //   layerGroup.clearLayers();
-      //   layerGroup.removeLayer(layer_img)
-      //   map.removeLayer(layer_img)
-      // }
-      // if (map.hasLayer(area)) {
-      //   layerGroup.clearLayers();
-      //   layerGroup.removeLayer(area)
-      //   map.removeLayer(area)
-      // }
-      // map.removeLayer(L.tileLayer)
-      // map.removeLayer(L.geoJson);
-      // L.geoJSON().clearLayers();
-
-      // Remove basemap, bound, img.
-      map.eachLayer(function (layer) {
-        map.removeLayer(layer);
-      });
-      add_basemap()
-
-      // STAC API World lon can be 180, lat max is 89.9.
-      // west_v = -180
-      // east_v = 180
-      // south_v = -89.9
-      // north_v = 89.9
-
-      // CMR API default. Currently use CMR API.
-      west_v = -180
-      east_v = 180
-      south_v = -90
-      north_v = 90
-
-      // US
-      // west_v  = -125
-      // east_v  = -66
-      // south_v = 25
-      // north_v = 50
-
-      // DC.
-      // west_v = -80
-      // east_v = -70
-      // south_v = 36
-      // north_v = 40
-
-      let startdate_v = document.getElementById('start-date').value
-      let enddate_v = document.getElementById('end-date').value
-
-      if (startdate_v == "") {
-        // Normal.
-        // startdate_v = "2023-04-01T00:00:00Z"
-        // enddate_v = "2023-04-06T00:00:00Z"
-        // Test.
-        startdate_v = "2022-12-01T00:00:00Z"
-        enddate_v = "2022-12-06T00:00:00Z"
-      }
-
-      const collection_v = document.getElementById('layer-selector').value
-
-      red_v = document.getElementById('r-selector').value
-      green_v = document.getElementById('g-selector').value
-      blue_v = document.getElementById('b-selector').value
-      min_v = document.getElementById('data-min').value
-      max_v = document.getElementById('data-max').value
-
-      // Cloud.
-      searchstr = {
-        "west": west_v,
-        "east": east_v,
-        "south": south_v,
-        "north": north_v,
-        "date": startdate_v + "," + enddate_v,
-        "collection": collection_v,
-        "red": red_v,
-        "green": green_v,
-        "blue": blue_v,
-        "scale": min_v + "," + max_v
-      }
-      console.log("Send request: " + JSON.stringify(searchstr))
-      fetch("http://" + OutsideIp + ":8003/search",
-        {
-          method: "POST",
-          headers: {
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(searchstr)
-        }
-      )
-        .then(response => {
-          if (response.ok)
-            return response.json()
-          throw new Error('Server no response.')
-        })
-        .then(data => {
-          msg = data.response
-          console.log("Get response: " + JSON.stringify(msg))
-
-          if (msg == "nodata") {
-            console.log("No data: ")
-          }
-          else {
-            center_lat = msg.lat
-            center_lon = msg.lon
-            file_name = msg.file
-
-            // console.log(center_lat + "," + center_lon + "," + file_name)
-
-            center_lat = (south_v + north_v) / 2
-            center_lon = (west_v + east_v) / 2
-            // add_map(center_lat, center_lon)
-
-            // File name from search.
-            add_img(file_name, red_v, green_v, blue_v, min_v, max_v)
-
-            // add_bound()
-          }
-        })
-        .catch(error => {
-          console.warn(error)
-        })
-
-      scope.query = body
+      add_img(red_v, green_v, blue_v, min_v, max_v)
     })
 
     const switchPane = (event) => {
@@ -699,47 +482,6 @@
       curSection.classList.toggle('active')
       const nextSection = document.getElementById(`${nextViz}-section`)
       nextSection.classList.toggle('active')
-    }
-
-    function add_bound() {
-      fetch("http://" + OutsideIp + ":8003/jsonbound")
-        .then(response => {
-          if (response.ok)
-            return response.json()
-          throw new Error('Server no response.')
-        })
-        .then(data => {
-          console.log("Add bounds.")
-          area_add(data)
-        })
-        .catch(error => {
-          console.warn(error)
-        })
-    }
-
-    function area_styler(feature) {
-      switch (feature.properties.path) {
-        default:
-          return { "dashArray": "1", "fillOpacity": 0, "opacity": 1, "weight": 1 };
-      }
-    }
-
-    function area_onEachFeature(feature, layer) {
-      layer.on({
-      });
-    };
-
-    function area_add(data) {
-      area = L.geoJson(null, {
-        onEachFeature: area_onEachFeature,
-        style: area_styler,
-      });
-
-      layerGroup.addLayer(area);
-
-      area
-        .addData(data)
-        .addTo(map);
     }
 
   </script>
