@@ -243,13 +243,16 @@
   <script>
 
     // Outside containers use 0.0.0.0
-    ClientIp = "0.0.0.0"
+    // ClientIp = "0.0.0.0"
 
     // Inside containers use name as ip.
     // ClientIp = "ddvclient"
 
     ServerIp = env.ServerIp
-    console.log("ServerIp: " + ServerIp)
+    // console.log("ServerIp: " + ServerIp)
+
+    registerid = env.RegisterId
+    // console.log("RegisterId: " + registerid)
 
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
@@ -406,29 +409,36 @@
 
       url = ""
 
-      fetch("http://" + ClientIp + ":8003/registerid")
-        .then(response => {
-          if (response.ok)
-            return response.json()
-          throw new Error('Server no response.')
-        })
-        .then(data => {
-          id_str = data
-          ids = id_str.split(',')
-          registerid = ids[1]
-          console.log("Registerid: " + registerid)
+      // fetch("http://" + ClientIp + ":8003/registerid")
+      //   .then(response => {
+      //     if (response.ok)
+      //       return response.json()
+      //     throw new Error('Server no response.')
+      //   })
+      //   .then(data => {
+      //     id_str = data
+      //     ids = id_str.split(',')
+      //     registerid = ids[1]
+      //     console.log("RegisterId: " + registerid)
 
-          url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
-            "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+      //     url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+      //       "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
 
-          if (url != "") {
-            new_layer()
-          }
+      //     if (url != "") {
+      //       new_layer()
+      //     }
 
-        })
-        .catch(error => {
-          console.warn(error)
-        })
+      //   })
+      //   .catch(error => {
+      //     console.warn(error)
+      //   })
+
+      url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+          "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+
+      if (url != "") {
+        new_layer()
+      }
 
       function new_layer() {
         console.log("Add tile: " + url)
