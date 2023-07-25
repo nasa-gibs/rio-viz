@@ -169,16 +169,15 @@
         </div>
         <div class='px6 pt6 pb6'>
           <div class='align-center'>
-            <!-- Normal -->
-            <input id="start-date" type="text" placeholder="2022-12-01T00:00:00Z" />
-            <input id="end-date" type="text" placeholder="2022-12-06T00:00:00Z" />
-            
-            <!-- Test -->
-            <!-- 
-            <input id="start-date" type="text" placeholder="2023-04-01T00:00:00Z" />
-            <input id="end-date" type="text" placeholder="2023-04-06T00:00:00Z" /> 
-            -->
 
+            <!-- Placeholder is example, not default value. -->   
+            <input id="start-date" type="text" placeholder="2022-07-01T00:00:00Z" />
+            <input id="end-date" type="text" placeholder="2022-07-06T00:00:00Z" /> 
+
+            <!--
+            <input id="start-date" type="date" value="2022-07-01T00:00:00Z" />
+            <input id="end-date" type="date" value="2022-07-06T00:00:00Z" /> 
+            -->
           </div>
         </div>
       </section>
@@ -251,15 +250,17 @@
     ServerIp = env.ServerIp
     // console.log("ServerIp: " + ServerIp)
 
-    registerid = env.RegisterId
-    // console.log("RegisterId: " + registerid)
-
     var red_v, green_v, blue_v, min_v, max_v
     var layer_img
     var area
     var file_name = ""
     var layerGroup = new L.LayerGroup();
     var center_lon, center_lat
+
+    var datajson
+    var obj
+
+    var registerid
 
     L_NO_TOUCH = false;
     L_DISABLE_3D = false;
@@ -272,9 +273,6 @@
 
     // Set menu values.
     var scope = { collections: undefined, features: [], next_token: undefined, limit: 100, query: {} }
-
-    // Placeholder is not default value.
-    // document.getElementById("start-date").defaultValue="2022-10-02T00:00:00Z";
 
     const startpicker = window.pickadate.create()
     const startdate = document.getElementById('start-date')
@@ -289,6 +287,12 @@
     enddate.addEventListener('pickadate:change', () => {
       enddate.value = endpicker.getValue('YYYY-MM-DD[T]HH:mm:ss[Z]')
     })
+
+    // Default values.
+    // document.getElementById("start-date").defaultValue = "2022-09-09T00:00:00Z";
+    // document.getElementById("end-date").defaultValue = "2022-07-06T00:00:00Z";
+    document.getElementById("start-date").defaultDate = "2022-09-09T00:00:00Z";
+    document.getElementById("end-date").defaultDate = "2022-07-06T00:00:00Z";
 
     const layerList = document.getElementById('layer-selector')
     const layers = [
@@ -318,7 +322,8 @@
       let name = img.band_name[i]
       l.setAttribute('name', name)
       l.text = name
-      if (i === 11) l.selected = "selected"
+      // Index, not band number, for red channel.
+      if (i === 3) l.selected = "selected"
       rList.appendChild(l)
     }
 
@@ -329,7 +334,7 @@
       let name = img.band_name[i]
       l.setAttribute('name', name)
       l.text = name
-      if (i === 7) l.selected = "selected"
+      if (i === 2) l.selected = "selected"
       gList.appendChild(l)
     }
 
@@ -340,7 +345,7 @@
       let name = img.band_name[i]
       l.setAttribute('name', name)
       l.text = name
-      if (i === 4) l.selected = "selected"
+      if (i === 1) l.selected = "selected"
       bList.appendChild(l)
     }
 
@@ -361,7 +366,7 @@
           // crs: L.CRS.Simple,
           zoom: 10,
           minZoom: 0,
-          maxZoom: 18,
+          maxZoom: 32, //18,
           zoomControl: false,
           preferCanvas: false,
         }
@@ -380,8 +385,8 @@
         {
           "detectRetina": false,
           "maxNativeZoom": 12,
-          "maxZoom": 18,
           "minZoom": 0,
+          "maxZoom": 32, //18,
           "noWrap": false,
           "opacity": 1,
           "subdomains": "abc",
@@ -433,12 +438,39 @@
       //     console.warn(error)
       //   })
 
-      url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
-          "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+      fetch("http://" + ServerIp + ":8082/mosaic/list")
+        .then(res => res.json())
+        .then((fetchjson) => {
+          const startdate_v = document.getElementById('start-date').value
+          const enddate_v = document.getElementById('end-date').value
+          console.log("startdate: " + startdate_v)
+          console.log("enddate: " + enddate_v)
 
-      if (url != "") {
-        new_layer()
-      }
+          for (element in fetchjson.searches) {
+            let hash = fetchjson.searches[element].search.hash;
+            let datetime = fetchjson.searches[element].search.search.datetime;
+            console.log(element);
+            console.log(hash);
+            console.log(datetime);
+
+            if (startdate_v == "" && enddate_v == "" && element == 0) {
+              registerid = hash
+            }
+            else if (datetime == startdate_v+"/"+enddate_v) {
+              registerid = hash
+            }
+          }
+
+          console.log("registerid: " + registerid)
+          url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+            "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+
+          if (url != "") {
+            new_layer()
+          }
+
+        }).catch(err => { throw err });
+      
 
       function new_layer() {
         console.log("Add tile: " + url)
@@ -448,8 +480,8 @@
           {
             "attribution": "HLS",
             "maxNativeZoom": 12,
-            "maxZoom": 18,
             "minZoom": 0,
+            "maxZoom": 32, //18,
             "noWrap": false,
             "opacity": 1,
             "subdomains": "abc",
