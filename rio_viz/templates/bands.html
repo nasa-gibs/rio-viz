@@ -364,9 +364,10 @@
           // crs: L.CRS.EPSG3395, 
           // crs: L.CRS.Earch,
           // crs: L.CRS.Simple,
+          maxNativeZoom: 12,
           zoom: 10,
-          minZoom: 0,
-          maxZoom: 32, //18,
+          minZoom: 0, // Define zoom level 0, 32. 
+          maxZoom: 32, 
           zoomControl: false,
           preferCanvas: false,
         }
@@ -386,7 +387,7 @@
           "detectRetina": false,
           "maxNativeZoom": 12,
           "minZoom": 0,
-          "maxZoom": 32, //18,
+          "maxZoom": 32,
           "noWrap": false,
           "opacity": 1,
           "subdomains": "abc",
@@ -479,9 +480,9 @@
           url,
           {
             "attribution": "HLS",
-            "maxNativeZoom": 12,
-            "minZoom": 0,
-            "maxZoom": 32, //18,
+            "maxNativeZoom": 12, // Data max zoom for interpolation of other zoom level.
+            "minZoom": 0, // Actual image can show from 4 to 24.
+            "maxZoom": 32,
             "noWrap": false,
             "opacity": 1,
             "subdomains": "abc",
