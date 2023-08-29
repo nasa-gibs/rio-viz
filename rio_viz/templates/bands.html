@@ -441,6 +441,7 @@
           console.log("startdate: " + startdate_v)
           console.log("enddate: " + enddate_v)
 
+          registerid = ""
           for (hash_number in fetchjson.searches) {
             let hash = fetchjson.searches[hash_number].search.hash;
             let datetime = fetchjson.searches[hash_number].search.search.datetime;
@@ -454,10 +455,10 @@
           }
 
           console.log("registerid: " + registerid)
-          url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
-            "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+          if (registerid != "") {
+            url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+              "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
 
-          if (url != "") {
             new_layer()
           }
 
