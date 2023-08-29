@@ -170,14 +170,10 @@
         <div class='px6 pt6 pb6'>
           <div class='align-center'>
 
-            <!-- Placeholder is example, not default value. -->   
+            <!-- Placeholder is example, not value. -->   
             <input id="start-date" type="text" placeholder="2022-07-01T00:00:00Z" />
-            <input id="end-date" type="text" placeholder="2022-07-06T00:00:00Z" /> 
-
-            <!--
-            <input id="start-date" type="date" value="2022-07-01T00:00:00Z" />
-            <input id="end-date" type="date" value="2022-07-06T00:00:00Z" /> 
-            -->
+            <input id="end-date" type="text" placeholder="2022-07-06T00:00:00Z" />
+           
           </div>
         </div>
       </section>
@@ -288,11 +284,9 @@
       enddate.value = endpicker.getValue('YYYY-MM-DD[T]HH:mm:ss[Z]')
     })
 
-    // Default values.
-    // document.getElementById("start-date").defaultValue = "2022-09-09T00:00:00Z";
-    // document.getElementById("end-date").defaultValue = "2022-07-06T00:00:00Z";
-    document.getElementById("start-date").defaultDate = "2022-09-09T00:00:00Z";
-    document.getElementById("end-date").defaultDate = "2022-07-06T00:00:00Z";
+    // Set dates.
+    document.getElementById("start-date").value = "2022-07-01T00:00:00Z";
+    document.getElementById("end-date").value = "2022-07-06T00:00:00Z";
 
     const layerList = document.getElementById('layer-selector')
     const layers = [
@@ -365,7 +359,7 @@
           // crs: L.CRS.Earch,
           // crs: L.CRS.Simple,
           maxNativeZoom: 12,
-          zoom: 10,
+          zoom: 12,
           minZoom: 0, // Define zoom level 0, 32. 
           maxZoom: 32, 
           zoomControl: false,
@@ -442,22 +436,19 @@
       fetch("http://" + ServerIp + ":8082/mosaic/list")
         .then(res => res.json())
         .then((fetchjson) => {
-          const startdate_v = document.getElementById('start-date').value
-          const enddate_v = document.getElementById('end-date').value
+          var startdate_v = document.getElementById('start-date').value
+          var enddate_v = document.getElementById('end-date').value
           console.log("startdate: " + startdate_v)
           console.log("enddate: " + enddate_v)
 
-          for (element in fetchjson.searches) {
-            let hash = fetchjson.searches[element].search.hash;
-            let datetime = fetchjson.searches[element].search.search.datetime;
-            console.log(element);
-            console.log(hash);
-            console.log(datetime);
+          for (hash_number in fetchjson.searches) {
+            let hash = fetchjson.searches[hash_number].search.hash;
+            let datetime = fetchjson.searches[hash_number].search.search.datetime;
+            console.log("Hash number: " + hash_number);
+            console.log("Hash value: " + hash);
+            console.log("Date time: " + datetime);
 
-            if (startdate_v == "" && enddate_v == "" && element == 0) {
-              registerid = hash
-            }
-            else if (datetime == startdate_v+"/"+enddate_v) {
+            if (datetime == startdate_v+"/"+enddate_v) {
               registerid = hash
             }
           }
