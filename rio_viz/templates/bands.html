@@ -456,8 +456,12 @@
 
           console.log("registerid: " + registerid)
           if (registerid != "") {
-            url = "http://" + ServerIp + ":8082/mosaic/" + registerid + "/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+            // Old
+            url = "http://" + ServerIp + ":8082/mosaic/tiles/" + registerid + "/WebMercatorQuad/{z}/{x}/{y}@1x?" +
               "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
+            // New
+            // url = "http://" + ServerIp + ":8082/mosaic/" + registerid + "/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?" +
+            //   "assets=" + red_v + "&assets=" + green_v + "&assets=" + blue_v + "&rescale=" + min_v + "," + max_v
 
             new_layer()
           }
